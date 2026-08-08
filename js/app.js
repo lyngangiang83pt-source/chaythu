@@ -4,6 +4,10 @@
    Founder: Huỳnh Ngân Giang | 0355782168 | lyngangiang83pt@gmail.com
    ========================================================================== */
 
+// Pre-configured Supabase Project Credentials
+const SUPABASE_PROJECT_URL = "https://qmwprqrupefjlxdlitoh.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtd3BycXJ1cGVmamx4ZGxpdG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTM0NjAsImV4cCI6MjEwMTY2OTQ2MH0.EwCpg3QfIKbTnMFZWKOKS1phWLyy6o37S0s2OEP3xpc";
+
 // Supabase Global Client Instance
 let supabaseClient = null;
 
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initQuizGame();
   checkSavedAuth();
   
-  // Try initializing Supabase
+  // Connect to Supabase using hardcoded project credentials
   await initSupabaseConnection();
 
   renderPodcasts();
@@ -104,29 +108,39 @@ document.addEventListener('DOMContentLoaded', async () => {
    SUPABASE INTEGRATION LOGIC
    ========================================================================== */
 async function initSupabaseConnection() {
-  const savedUrl = localStorage.getItem('supabase_url');
-  const savedKey = localStorage.getItem('supabase_key');
+  const url = localStorage.getItem('supabase_url') || SUPABASE_PROJECT_URL;
+  const key = localStorage.getItem('supabase_key') || SUPABASE_ANON_KEY;
   const statusBadge = document.getElementById('supabaseStatusText');
 
-  if (savedUrl && savedKey && window.supabase) {
+  if (url && key && window.supabase) {
     try {
-      supabaseClient = window.supabase.createClient(savedUrl, savedKey);
-      statusBadge.innerText = 'Supabase: Đã kết nối';
-      statusBadge.style.color = '#34d399';
+      supabaseClient = window.supabase.createClient(url, key);
       
-      // Load Dynamic Data from Supabase
-      await fetchNewsFromSupabase();
+      // Attempt fetching data from Supabase
+      const hasLiveDb = await fetchNewsFromSupabase();
+      if (hasLiveDb) {
+        if (statusBadge) {
+          statusBadge.innerText = 'Supabase: Đã đồng bộ';
+          statusBadge.style.color = '#34d399';
+        }
+      } else {
+        if (statusBadge) {
+          statusBadge.innerText = 'Supabase: Sẵn sàng (Dữ liệu nền)';
+          statusBadge.style.color = '#38bdf8';
+        }
+      }
+      
       await fetchLecturesFromSupabase();
       await fetchAssignmentsFromSupabase();
       await fetchAnnouncementsFromSupabase();
       return;
     } catch (err) {
-      console.warn('Lỗi kết nối Supabase, chuyển sang chế độ dữ liệu mẫu:', err);
+      console.warn('Lỗi khởi tạo Supabase Client:', err);
     }
   }
 
   // Fallback to local default data
-  if (statusBadge) statusBadge.innerText = 'Supabase: Dữ liệu mẫu';
+  if (statusBadge) statusBadge.innerText = 'Supabase: Dữ liệu chuẩn';
   renderNewsGrid(activeNews);
   renderLecturesGrid(activeLectures);
   renderAssignmentsGrid(activeAssignments);
@@ -134,7 +148,7 @@ async function initSupabaseConnection() {
 }
 
 async function fetchNewsFromSupabase() {
-  if (!supabaseClient) { renderNewsGrid(activeNews); return; }
+  if (!supabaseClient) { renderNewsGrid(activeNews); return false; }
   try {
     const { data, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false });
     if (data && data.length > 0 && !error) {
@@ -146,11 +160,14 @@ async function fetchNewsFromSupabase() {
         desc: item.content,
         tag: item.tag || 'Tin tức'
       }));
+      renderNewsGrid(activeNews);
+      return true;
     }
   } catch (e) {
     console.warn('Fallback news:', e);
   }
   renderNewsGrid(activeNews);
+  return false;
 }
 
 async function fetchLecturesFromSupabase() {
@@ -225,8 +242,8 @@ function openSupabaseModal() {
   const urlInput = document.getElementById('cfgSupabaseUrl');
   const keyInput = document.getElementById('cfgSupabaseKey');
 
-  urlInput.value = localStorage.getItem('supabase_url') || '';
-  keyInput.value = localStorage.getItem('supabase_key') || '';
+  urlInput.value = localStorage.getItem('supabase_url') || SUPABASE_PROJECT_URL;
+  keyInput.value = localStorage.getItem('supabase_key') || SUPABASE_ANON_KEY;
   modal.classList.add('active');
 }
 
@@ -259,10 +276,9 @@ async function saveSupabaseConfig() {
 function resetSupabaseConfig() {
   localStorage.removeItem('supabase_url');
   localStorage.removeItem('supabase_key');
-  supabaseClient = null;
-  document.getElementById('cfgSupabaseUrl').value = '';
-  document.getElementById('cfgSupabaseKey').value = '';
-  document.getElementById('supabaseTestStatus').innerText = '🔄 Đã chuyển về chế độ dữ liệu mẫu tích hợp!';
+  document.getElementById('cfgSupabaseUrl').value = SUPABASE_PROJECT_URL;
+  document.getElementById('cfgSupabaseKey').value = SUPABASE_ANON_KEY;
+  document.getElementById('supabaseTestStatus').innerText = '🔄 Đã khôi phục thông tin Supabase mặc định của Cô Huỳnh Ngân Giang!';
   document.getElementById('supabaseTestStatus').style.color = '#a5b4fc';
   initSupabaseConnection();
 }
