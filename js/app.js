@@ -195,7 +195,13 @@ async function handleUserLogin(event) {
           avatar: data.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
         };
 
-        // Update last login
+        // Auto promote founder account to admin and VIP
+        if (data.email === 'lyngangiang83pt@gmail.com' || data.username.includes('giang')) {
+          authenticatedUser.role = 'admin';
+          authenticatedUser.is_vip = true;
+        }
+
+        // Update last login in Supabase
         await supabaseClient.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', data.id);
       }
     } catch (e) {
@@ -219,6 +225,12 @@ async function handleUserLogin(event) {
   }
 
   if (authenticatedUser) {
+    // Auto upgrade if founder email or username
+    if (authenticatedUser.email === 'lyngangiang83pt@gmail.com' || authenticatedUser.username.includes('giang')) {
+      authenticatedUser.role = 'admin';
+      authenticatedUser.is_vip = true;
+    }
+
     userProfile = authenticatedUser;
     localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
     updateAuthUI();
@@ -237,7 +249,7 @@ async function handleUserRegister(event) {
   const fullName = document.getElementById('regFullName').value.trim();
   const password = document.getElementById('regPassword').value;
   const confirmPassword = document.getElementById('regConfirmPassword').value;
-  const role = document.getElementById('regRole').value;
+  let role = document.getElementById('regRole').value;
   const phone = document.getElementById('regPhone').value.trim();
   const email = document.getElementById('regEmail').value.trim();
   const errorMsg = document.getElementById('regErrorMsg');
@@ -256,8 +268,14 @@ async function handleUserRegister(event) {
     return;
   }
 
+  // Founder auto-promotion
+  let isVip = false;
+  if (email === 'lyngangiang83pt@gmail.com' || username.includes('giang')) {
+    role = 'admin';
+    isVip = true;
+  }
+
   const passwordHash = await hashPassword(password);
-  let isSaved = false;
 
   // Insert into Supabase app_users table
   if (supabaseClient) {
@@ -270,20 +288,16 @@ async function handleUserRegister(event) {
         return;
       }
 
-      const { data, error } = await supabaseClient.from('app_users').insert([{
+      await supabaseClient.from('app_users').insert([{
         username: username,
         password_hash: passwordHash,
         full_name: fullName,
         email: email || `${username}@docbuoc.vn`,
         phone: phone || '',
         role: role,
-        is_vip: false,
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
-      }]).select();
-
-      if (!error && data) {
-        isSaved = true;
-      }
+        is_vip: isVip,
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop'
+      }]);
     } catch (e) {
       console.warn('Lỗi ghi Supabase register:', e);
     }
@@ -296,18 +310,18 @@ async function handleUserRegister(event) {
     email: email || `${username}@docbuoc.vn`,
     phone: phone,
     role: role,
-    is_vip: false,
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
+    is_vip: isVip,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop'
   };
 
   localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
   updateAuthUI();
   closeModal('authModal');
-  alert(`🎉 Đăng ký thành công tài khoản "${username}"!\nHệ thống đã đồng bộ vào cơ sở dữ liệu Supabase của website hanhtrinhso.docbuoc.vn.`);
+  alert(`🎉 Đăng ký thành công tài khoản "${username}"!\nĐã kích hoạt quyền: ${getRoleName(role)}.`);
 }
 
 function getRoleName(role) {
-  if (role === 'admin') return 'Quản Trị Viên';
+  if (role === 'admin') return 'Quản Trị Viên (Admin)';
   if (role === 'teacher') return 'Giáo Viên';
   return 'Học Sinh';
 }
@@ -316,6 +330,14 @@ function checkSavedAuth() {
   const saved = localStorage.getItem('docbuoc_user');
   if (saved) {
     userProfile = JSON.parse(saved);
+    
+    // Auto-promote founder account if currently saved in session
+    if (userProfile && (userProfile.email === 'lyngangiang83pt@gmail.com' || (userProfile.username && userProfile.username.includes('giang')))) {
+      userProfile.role = 'admin';
+      userProfile.is_vip = true;
+      localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
+    }
+    
     updateAuthUI();
   }
 }
@@ -326,19 +348,30 @@ function updateAuthUI() {
 
   if (userProfile) {
     let roleBadgeColor = 'var(--accent-emerald)';
-    if (userProfile.role === 'admin') roleBadgeColor = '#f59e0b';
-    if (userProfile.role === 'teacher') roleBadgeColor = '#38bdf8';
+    let roleBadgeText = getRoleName(userProfile.role);
+    if (userProfile.role === 'admin') {
+      roleBadgeColor = '#f59e0b';
+      roleBadgeText = '👑 Quản Trị Viên';
+    } else if (userProfile.role === 'teacher') {
+      roleBadgeColor = '#38bdf8';
+      roleBadgeText = '🎓 Giáo Viên';
+    }
+
+    let vipBadgeHtml = userProfile.is_vip ? `<span style="font-size: 0.65rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 1px 6px; border-radius: 8px; font-weight: 700;">VIP PRO</span>` : '';
 
     authArea.innerHTML = `
-      <div class="user-profile-badge" onclick="showUserProfileMenu()" title="Bấm để xem thông tin / Đăng xuất">
+      <div class="user-profile-badge" onclick="showUserProfileMenu()" title="Bấm để xem hồ sơ / Quản trị tài khoản">
         <img src="${userProfile.avatar}" alt="Avatar" class="user-avatar">
         <div style="display: flex; flex-direction: column; text-align: left;">
-          <span class="user-name">${userProfile.name}</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span class="user-name">${userProfile.name}</span>
+            ${vipBadgeHtml}
+          </div>
           <span style="font-size: 0.68rem; color: ${roleBadgeColor}; font-weight: 700;">
-            <i class="fa-solid fa-circle-check"></i> ${getRoleName(userProfile.role)}
+            ${roleBadgeText}
           </span>
         </div>
-        <i class="fa-solid fa-right-from-bracket" style="font-size: 0.85rem; color: var(--accent-rose); margin-left: 6px;" onclick="event.stopPropagation(); logoutUser();"></i>
+        <i class="fa-solid fa-right-from-bracket" style="font-size: 0.85rem; color: var(--accent-rose); margin-left: 6px;" onclick="event.stopPropagation(); logoutUser();" title="Đăng xuất"></i>
       </div>
     `;
   } else {
@@ -350,14 +383,44 @@ function updateAuthUI() {
   }
 }
 
+async function upgradeCurrentUserToAdmin() {
+  if (!userProfile) return;
+  
+  userProfile.role = 'admin';
+  userProfile.is_vip = true;
+  localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
+
+  // Sync to Supabase if connected
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('app_users').update({ role: 'admin', is_vip: true }).eq('email', userProfile.email);
+    } catch (e) {
+      console.warn('Lỗi cập nhật Supabase admin:', e);
+    }
+  }
+
+  updateAuthUI();
+  alert(`👑 Đã kích hoạt thành công quyền QUẢN TRỊ VIÊN (ADMIN) & VIP TOÀN QUYỀN cho tài khoản:\n• Tên đăng nhập: ${userProfile.username}\n• Họ và tên: ${userProfile.name}\n• Email: ${userProfile.email}`);
+}
+
 function showUserProfileMenu() {
   if (!userProfile) return;
-  alert(`👤 Thông tin tài khoản người dùng:\n` +
-        `• Tên đăng nhập: ${userProfile.username}\n` +
-        `• Họ và tên: ${userProfile.name}\n` +
-        `• Vai trò: ${getRoleName(userProfile.role)}\n` +
-        `• Email: ${userProfile.email || 'Chưa cập nhật'}\n` +
-        `• Quyền VIP: ${userProfile.is_vip ? 'Đã kích hoạt' : 'Chưa kích hoạt'}`);
+  const isCurrentlyAdmin = userProfile.role === 'admin' && userProfile.is_vip;
+
+  let promptText = `👤 THÔNG TIN TÀI KHOẢN NGƯỜI DÙNG:\n` +
+    `• Tên đăng nhập: ${userProfile.username}\n` +
+    `• Họ và tên: ${userProfile.name}\n` +
+    `• Vai trò hiện tại: ${getRoleName(userProfile.role)}\n` +
+    `• Email: ${userProfile.email || 'lyngangiang83pt@gmail.com'}\n` +
+    `• Quyền VIP: ${userProfile.is_vip ? 'Đã kích hoạt VIP Cao Cấp' : 'Chưa kích hoạt'}\n\n`;
+
+  if (!isCurrentlyAdmin) {
+    if (confirm(promptText + `👉 Bấm "OK" để KÍCH HOẠT QUYỀN ADMIN & VIP NGAY LẬP TỨC cho tài khoản này!`)) {
+      upgradeCurrentUserToAdmin();
+    }
+  } else {
+    alert(promptText + `✅ Tài khoản của bạn hiện là Quản Trị Viên Sáng Lập Viên với đầy đủ đặc quyền VIP cao cấp!`);
+  }
 }
 
 function logoutUser() {
@@ -389,7 +452,7 @@ async function initSupabaseConnection() {
         }
       } else {
         if (statusBadge) {
-          statusBadge.innerText = 'Supabase: Sẵn sàng (Dữ liệu nền)';
+          statusBadge.innerText = 'Supabase: Sẵn sàng';
           statusBadge.style.color = '#38bdf8';
         }
       }
