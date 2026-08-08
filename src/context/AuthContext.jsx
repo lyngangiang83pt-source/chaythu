@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
+// Email duy nhất được quyền Quản Trị Viên (Admin)
+export const SUPER_ADMIN_EMAIL = 'lyngangiang83pt@gmail.com';
+
 // Fallback local accounts (Password: 123456)
 const defaultLocalUsers = [
   { username: 'admin_giang', password_hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', full_name: 'Huỳnh Ngân Giang', role: 'admin', is_vip: true, avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', email: 'lyngangiang83pt@gmail.com' },
@@ -27,9 +30,12 @@ export function AuthProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.email === 'lyngangiang83pt@gmail.com' || (parsed.username && parsed.username.includes('giang'))) {
+        // Chỉ duy nhất email lyngangiang83pt@gmail.com mới có quyền Admin
+        if (parsed.email === SUPER_ADMIN_EMAIL) {
           parsed.role = 'admin';
           parsed.is_vip = true;
+        } else {
+          parsed.role = parsed.role === 'admin' ? 'teacher' : parsed.role;
         }
         setUser(parsed);
       } catch (e) {
@@ -85,10 +91,14 @@ export function AuthProvider({ children }) {
     }
 
     if (authenticatedUser) {
-      if (authenticatedUser.email === 'lyngangiang83pt@gmail.com' || authenticatedUser.username.includes('giang')) {
+      // Chỉ duy nhất email lyngangiang83pt@gmail.com mới là Admin
+      if (authenticatedUser.email === SUPER_ADMIN_EMAIL) {
         authenticatedUser.role = 'admin';
         authenticatedUser.is_vip = true;
+      } else {
+        authenticatedUser.role = authenticatedUser.role === 'admin' ? 'teacher' : authenticatedUser.role;
       }
+
       setUser(authenticatedUser);
       localStorage.setItem('docbuoc_user', JSON.stringify(authenticatedUser));
       setIsAuthModalOpen(false);
@@ -100,13 +110,18 @@ export function AuthProvider({ children }) {
 
   const register = async ({ username, fullName, password, role, email, phone }) => {
     const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email ? email.trim().toLowerCase() : `${cleanUsername}@docbuoc.vn`;
     const passwordHash = await hashPassword(password);
+    
+    // Chỉ cấp admin nếu email chính xác là lyngangiang83pt@gmail.com
     let isVip = false;
     let finalRole = role;
 
-    if (email === 'lyngangiang83pt@gmail.com' || cleanUsername.includes('giang')) {
+    if (cleanEmail === SUPER_ADMIN_EMAIL) {
       finalRole = 'admin';
       isVip = true;
+    } else {
+      finalRole = finalRole === 'admin' ? 'student' : finalRole;
     }
 
     if (supabase) {
@@ -120,7 +135,7 @@ export function AuthProvider({ children }) {
           username: cleanUsername,
           password_hash: passwordHash,
           full_name: fullName,
-          email: email || `${cleanUsername}@docbuoc.vn`,
+          email: cleanEmail,
           phone: phone || '',
           role: finalRole,
           is_vip: isVip,
@@ -134,7 +149,7 @@ export function AuthProvider({ children }) {
     const newUser = {
       username: cleanUsername,
       name: fullName,
-      email: email || `${cleanUsername}@docbuoc.vn`,
+      email: cleanEmail,
       phone: phone,
       role: finalRole,
       is_vip: isVip,
@@ -152,27 +167,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('docbuoc_user');
   };
 
-  const upgradeToAdmin = async () => {
-    if (!user) return;
-    const upgraded = { ...user, role: 'admin', is_vip: true };
-    setUser(upgraded);
-    localStorage.setItem('docbuoc_user', JSON.stringify(upgraded));
-    if (supabase && user.email) {
-      try {
-        await supabase.from('app_users').update({ role: 'admin', is_vip: true }).eq('email', user.email);
-      } catch (e) {
-        console.warn('Supabase admin upgrade:', e);
-      }
-    }
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
       login,
       register,
       logout,
-      upgradeToAdmin,
       isAuthModalOpen,
       setIsAuthModalOpen,
       authModalTab,

@@ -1,10 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, SUPER_ADMIN_EMAIL } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 export default function AdminDashboard({ onExitAdmin }) {
   const { user } = useAuth();
   const [adminTab, setAdminTab] = useState('overview');
+
+  // Strict Access Guard: Only lyngangiang83pt@gmail.com can enter
+  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-xl)', margin: '40px 0' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(244, 63, 94, 0.2)', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', margin: '0 auto 20px' }}>
+          <i className="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 style={{ color: 'var(--accent-rose)', fontSize: '1.8rem', marginBottom: '12px' }}>
+          🚫 Quyền Truy Cập Bị Từ Chối!
+        </h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '550px', margin: '0 auto 24px', fontSize: '0.95rem' }}>
+          Khu vực Quản Trị Viên (Admin CMS) được bảo mật nghiêm ngặt và chỉ dành riêng duy nhất cho tài khoản chính thức của Sáng Lập Viên: <strong style={{ color: '#fff' }}>lyngangiang83pt@gmail.com</strong>.
+        </p>
+        <button className="btn btn-primary" onClick={onExitAdmin}>
+          <i className="fa-solid fa-house"></i> Quay Về Trang Chủ
+        </button>
+      </div>
+    );
+  }
 
   // State stores for all 10 modules
   const [usersList, setUsersList] = useState([
@@ -125,6 +145,10 @@ export default function AdminDashboard({ onExitAdmin }) {
   };
 
   const handleDeleteUser = async (username) => {
+    if (username === 'admin_giang') {
+      alert('⚠️ Không thể xóa tài khoản Quản trị viên sáng lập!');
+      return;
+    }
     if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${username}" không?`)) {
       setUsersList(prev => prev.filter(u => u.username !== username));
       if (supabase) {
@@ -319,7 +343,7 @@ export default function AdminDashboard({ onExitAdmin }) {
               Trung Tâm Quản Trị Hệ Thống (Admin CMS)
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Sáng lập viên: <strong>Huỳnh Ngân Giang</strong> | Domain: <strong>hanhtrinhso.docbuoc.vn</strong> | Supabase Đồng bộ 2 chiều
+              Sáng lập viên: <strong>Huỳnh Ngân Giang</strong> | Email: <strong>lyngangiang83pt@gmail.com</strong> | Domain: <strong>hanhtrinhso.docbuoc.vn</strong>
             </p>
           </div>
         </div>
@@ -395,6 +419,7 @@ export default function AdminDashboard({ onExitAdmin }) {
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
             <h3 style={{ marginBottom: '14px', fontSize: '1.2rem' }}><i className="fa-solid fa-circle-check" style={{ color: 'var(--accent-emerald)' }}></i> Trạng Thái Hoạt Động Của Hệ Thống</h3>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <li>• <strong>Quyền Quản Trị Duy Nhất:</strong> <code>lyngangiang83pt@gmail.com</code> (Đã xác thực bảo mật cấp cao).</li>
               <li>• <strong>Framework Frontend:</strong> React 18 SPA với Vite (Tối ưu hóa Vercel).</li>
               <li>• <strong>Cơ sở dữ liệu:</strong> Supabase PostgreSQL (8 bảng đồng bộ tự động).</li>
               <li>• <strong>Xác thực bảo mật:</strong> Mật khẩu mã hóa SHA-256 qua Web Crypto API.</li>
@@ -430,15 +455,18 @@ export default function AdminDashboard({ onExitAdmin }) {
                     <td style={{ padding: '12px' }}>{u.full_name}</td>
                     <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{u.email || u.phone || 'Chưa cập nhật'}</td>
                     <td style={{ padding: '12px' }}>
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleChangeRole(u.username, e.target.value)}
-                        style={{ padding: '4px 8px', background: '#1e293b', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.8rem' }}
-                      >
-                        <option value="student">Học sinh</option>
-                        <option value="teacher">Giáo viên</option>
-                        <option value="admin">Quản trị viên</option>
-                      </select>
+                      {u.email === SUPER_ADMIN_EMAIL ? (
+                        <span style={{ color: '#f59e0b', fontWeight: 700 }}>👑 Quản Trị Viên</span>
+                      ) : (
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleChangeRole(u.username, e.target.value)}
+                          style={{ padding: '4px 8px', background: '#1e293b', border: '1px solid var(--border-glass)', borderRadius: '6px', color: '#fff', fontSize: '0.8rem' }}
+                        >
+                          <option value="student">Học sinh</option>
+                          <option value="teacher">Giáo viên</option>
+                        </select>
+                      )}
                     </td>
                     <td style={{ padding: '12px' }}>
                       <button
@@ -450,7 +478,7 @@ export default function AdminDashboard({ onExitAdmin }) {
                       </button>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      {u.username !== 'admin_giang' && (
+                      {u.email !== SUPER_ADMIN_EMAIL && (
                         <button className="btn btn-google" style={{ padding: '4px 8px', color: 'var(--accent-rose)', fontSize: '0.75rem' }} onClick={() => handleDeleteUser(u.username)}>
                           <i className="fa-solid fa-trash"></i> Xóa
                         </button>
@@ -784,8 +812,8 @@ export default function AdminDashboard({ onExitAdmin }) {
               <input type="text" readOnly value="0355782168" style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: '#fff' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-muted)' }}>Email chính thức:</label>
-              <input type="text" readOnly value="lyngangiang83pt@gmail.com" style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: '#fff' }} />
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-muted)' }}>Email chính thức (Quản trị viên tối cao):</label>
+              <input type="text" readOnly value="lyngangiang83pt@gmail.com" style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: '#f59e0b', fontWeight: 700 }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--text-muted)' }}>Tên miền định danh:</label>

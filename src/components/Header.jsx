@@ -1,29 +1,28 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, SUPER_ADMIN_EMAIL } from '../context/AuthContext';
 
 export default function Header({ activeView, setActiveView, onOpenSupabaseModal, onToggleTheme, isDarkMode }) {
-  const { user, logout, setIsAuthModalOpen, setAuthModalTab, upgradeToAdmin } = useAuth();
+  const { user, logout, setIsAuthModalOpen, setAuthModalTab } = useAuth();
+
+  const isSuperAdmin = user && user.email === SUPER_ADMIN_EMAIL;
 
   const handleOpenLogin = () => {
     setAuthModalTab('login');
     setIsAuthModalOpen(true);
   };
 
-  const getRoleBadge = (role) => {
-    if (role === 'admin') return { text: '👑 Quản Trị Viên', color: '#f59e0b' };
+  const getRoleBadge = (role, email) => {
+    if (email === SUPER_ADMIN_EMAIL) return { text: '👑 Quản Trị Viên', color: '#f59e0b' };
     if (role === 'teacher') return { text: '🎓 Giáo Viên', color: '#38bdf8' };
     return { text: 'Học Sinh', color: 'var(--accent-emerald)' };
   };
 
   const handleProfileClick = () => {
     if (!user) return;
-    if (user.role !== 'admin') {
-      if (window.confirm(`👤 Tài khoản: ${user.name}\nVai trò: ${user.role}\n\n👉 Bạn có muốn KÍCH HOẠT QUYỀN ADMIN & VIP TOÀN QUYỀN ngay bây giờ?`)) {
-        upgradeToAdmin();
-        alert('🎉 Đã kích hoạt quyền QUẢN TRỊ VIÊN & VIP PRO thành công!');
-      }
-    } else {
+    if (isSuperAdmin) {
       setActiveView('admin');
+    } else {
+      alert(`👤 Hồ sơ người dùng:\n• Tên đăng nhập: ${user.username}\n• Họ và tên: ${user.name}\n• Vai trò: ${user.role === 'teacher' ? 'Giáo Viên' : 'Học Sinh'}\n• Email: ${user.email}\n\nℹ️ Quyền Quản Trị Viên (Admin) chỉ dành riêng cho tài khoản chính thức: ${SUPER_ADMIN_EMAIL}`);
     }
   };
 
@@ -111,7 +110,7 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
                   <i className="fa-solid fa-bell"></i> Thông báo
                 </button>
               </li>
-              {user && user.role === 'admin' && (
+              {isSuperAdmin && (
                 <li className="nav-item">
                   <button className={`nav-link ${activeView === 'admin' ? 'active' : ''}`} onClick={() => setActiveView('admin')} style={{ color: '#f59e0b', fontWeight: 700 }}>
                     <i className="fa-solid fa-gauge-high"></i> Quản Trị Admin
@@ -129,7 +128,7 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
             </div>
 
             {user ? (
-              <div className="user-profile-badge" onClick={handleProfileClick} title="Bấm để vào Bảng Quản Trị Admin / Xem hồ sơ">
+              <div className="user-profile-badge" onClick={handleProfileClick} title={isSuperAdmin ? "Bấm để vào Bảng Quản Trị Admin" : "Xem thông tin tài khoản"}>
                 <img src={user.avatar} alt="Avatar" className="user-avatar" />
                 <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -140,8 +139,8 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
                       </span>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.68rem', color: getRoleBadge(user.role).color, fontWeight: 700 }}>
-                    {getRoleBadge(user.role).text}
+                  <span style={{ fontSize: '0.68rem', color: getRoleBadge(user.role, user.email).color, fontWeight: 700 }}>
+                    {getRoleBadge(user.role, user.email).text}
                   </span>
                 </div>
                 <i
