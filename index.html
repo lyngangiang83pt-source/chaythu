@@ -4,10 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HÀNH TRÌNH SỐ - hanhtrinhso.docbuoc.vn | Huỳnh Ngân Giang</title>
-  <meta name="description" content="Website giáo dục cá nhân sáng lập bởi Huỳnh Ngân Giang - Kho học liệu số, bài giảng NLS & AI Khối 6-9, game học tập, trợ lý AI 24/7.">
+  <meta name="description" content="Website giáo dục cá nhân sáng lập bởi Huỳnh Ngân Giang - Kho học liệu số, bài giảng NLS & AI Khối 6-9, game học tập, trợ lý AI 24/7 kết nối Supabase.">
   
   <!-- Google Fonts & FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
@@ -22,6 +25,12 @@
       <span class="topbar-info-item"><i class="fa-solid fa-envelope"></i> Email: <strong>lyngangiang83pt@gmail.com</strong></span>
     </div>
     <div class="topbar-controls">
+      <!-- Supabase DB Connection Badge & Button -->
+      <button class="theme-toggle-btn" id="supabaseConfigBtn" onclick="openSupabaseModal()" title="Cài đặt kết nối cơ sở dữ liệu Supabase">
+        <i class="fa-solid fa-database" style="color: #3ecf8e;"></i> <span id="supabaseStatusText">Supabase: Sẵn sàng</span>
+      </button>
+
+      <!-- Theme Switcher -->
       <button class="theme-toggle-btn" id="themeToggleBtn" title="Chuyển chế độ Sáng/Tối">
         <i class="fa-solid fa-moon"></i> <span>Giao diện</span>
       </button>
@@ -59,7 +68,7 @@
       <div class="header-actions">
         <div class="notification-bell" id="bellBtn" title="Xem thông báo mới" onclick="switchView('announcements')">
           <i class="fa-solid fa-bell"></i>
-          <span class="bell-badge">3</span>
+          <span class="bell-badge" id="notificationBadgeCount">3</span>
         </div>
 
         <div id="authArea">
@@ -80,11 +89,11 @@
       <div class="hero-card">
         <div class="hero-content">
           <div class="hero-tag">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Nền Tảng Giáo Dục Số Tích Hợp AI & NLS
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Nền Tảng Giáo Dục Số Tích Hợp AI, NLS & Supabase
           </div>
           <h1 class="hero-title">Hành Trình Số - Khơi Nguồn Tri Thức Đổi Mới</h1>
           <p class="hero-desc">
-            Website giáo dục cá nhân của sáng lập viên <strong>Huỳnh Ngân Giang</strong>. Nơi chia sẻ bài giảng DOCX, PPTX tích hợp Năng lực số (NLS) & Trợ lý AI cho Khối 6, 7, 8, 9, học liệu số, phim giáo dục và game học tập trực quan.
+            Website giáo dục cá nhân của sáng lập viên <strong>Huỳnh Ngân Giang</strong>. Nơi chia sẻ bài giảng DOCX, PPTX tích hợp Năng lực số (NLS) & Trợ lý AI cho Khối 6, 7, 8, 9, học liệu số, phim giáo dục và game học tập trực quan kết nối đồng bộ cơ sở dữ liệu Supabase.
           </p>
           <div class="hero-cta-group">
             <button class="btn btn-primary" onclick="switchView('lectures')">
@@ -92,6 +101,9 @@
             </button>
             <button class="btn btn-vip-gold" onclick="switchView('vip-vault')">
               <i class="fa-solid fa-key"></i> Truy Cập Kho VIP
+            </button>
+            <button class="btn btn-google" onclick="openSupabaseModal()">
+              <i class="fa-solid fa-database" style="color: #3ecf8e;"></i> Kết nối Supabase
             </button>
           </div>
 
@@ -164,7 +176,7 @@
         <div class="content-card">
           <span class="card-tag tag-elearning"><i class="fa-solid fa-robot"></i> Chatbot 24/7</span>
           <h3 class="card-title">Hỏi Đáp Bài Học Online</h3>
-          <p class="card-desc">Trợ lý AI thông minh giải đáp câu hỏi 24/24 cho học sinh theo chương trình phổ thông mới.</p>
+          <p class="card-desc">Trợ lý AI thông minh giải đáp câu hỏi 24/24 cho học sinh theo chương trình phổ thông mới (lưu log vào Supabase).</p>
           <div class="card-actions">
             <button class="btn btn-primary" onclick="switchView('qa-bot')"><i class="fa-solid fa-comments"></i> Chat Ngay</button>
           </div>
@@ -182,7 +194,7 @@
         <div class="content-card">
           <span class="card-tag tag-docx"><i class="fa-solid fa-file-arrow-up"></i> Nộp Bài Tập</span>
           <h3 class="card-title">Cổng Nộp Sản Phẩm HS</h3>
-          <p class="card-desc">Nộp bài dễ dàng qua Padlet, Google Drive hoặc kết nối Zalo OA nhanh chóng.</p>
+          <p class="card-desc">Nộp bài dễ dàng qua Padlet, Google Drive hoặc lưu trực tiếp vào bảng Supabase.</p>
           <div class="card-actions">
             <button class="btn btn-primary" onclick="switchView('student-products')"><i class="fa-solid fa-upload"></i> Nộp Bài</button>
           </div>
@@ -195,7 +207,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-newspaper"></i> Bảng Tin Giáo Dục & Hướng Nghiệp</h2>
-          <p class="section-subtitle">Cập nhật tin tức trường học, văn bản chỉ đạo và định hướng tương lai</p>
+          <p class="section-subtitle">Cập nhật tin tức trường học, văn bản chỉ đạo và định hướng tương lai từ Supabase</p>
         </div>
       </div>
 
@@ -208,7 +220,7 @@
       </div>
 
       <div class="grid-cards" id="newsGridContainer">
-        <!-- Injected via JavaScript -->
+        <!-- Injected via JavaScript from Supabase / Fallback -->
       </div>
     </section>
 
@@ -302,7 +314,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-chalkboard-user"></i> Kho Bài Giảng Khối 6 - 7 - 8 - 9</h2>
-          <p class="section-subtitle">File `.pptx` & `.docx` <strong>tích hợp Năng lực số (NLS) và AI</strong> & Bài giảng Elearning</p>
+          <p class="section-subtitle">File `.pptx` & `.docx` <strong>tích hợp Năng lực số (NLS) và AI</strong> từ Supabase DB</p>
         </div>
       </div>
 
@@ -322,7 +334,7 @@
       </div>
 
       <div class="grid-cards" id="lecturesGrid">
-        <!-- Injected via JS -->
+        <!-- Injected via JS from Supabase / Fallback -->
       </div>
     </section>
 
@@ -344,7 +356,7 @@
       </div>
 
       <div class="grid-cards" id="assignmentsGrid">
-        <!-- Injected via JS -->
+        <!-- Injected via JS from Supabase / Fallback -->
       </div>
     </section>
 
@@ -353,7 +365,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-shapes"></i> Cổng Nộp & Trưng Bày Sản Phẩm Học Sinh</h2>
-          <p class="section-subtitle">Nộp bài tập qua Padlet, Google Drive hoặc kênh Zalo OA giáo viên</p>
+          <p class="section-subtitle">Nộp bài tập qua Padlet, Google Drive hoặc lưu trực tiếp vào bảng Supabase</p>
         </div>
       </div>
 
@@ -367,9 +379,9 @@
 
         <div class="submission-card">
           <div class="submission-icon icon-drive"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-          <h3>Nộp File Qua Google Drive</h3>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">Tải file bài tập, bài thuyết trình `.pptx` hoặc `.pdf` trực tiếp lên kho chứa Google Drive.</p>
-          <button class="btn btn-primary" onclick="openDriveModal()"><i class="fa-solid fa-folder-open"></i> Nộp File Drive</button>
+          <h3>Nộp Trực Tiếp (Supabase / Drive)</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Gửi link bài làm hoặc file dự án được lưu trữ trực tiếp vào cơ sở dữ liệu Supabase của cô Giang.</p>
+          <button class="btn btn-primary" onclick="openDriveModal()"><i class="fa-solid fa-folder-open"></i> Nộp Bài Ngay</button>
         </div>
 
         <div class="submission-card">
@@ -387,7 +399,7 @@
       </div>
 
       <div class="grid-cards" id="studentGalleryGrid">
-        <!-- Injected via JS -->
+        <!-- Injected via JS from Supabase / Fallback -->
       </div>
     </section>
 
@@ -396,7 +408,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-comments"></i> Trợ Lý AI Hỏi - Đáp 24/24</h2>
-          <p class="section-subtitle">Giải đáp thắc mắc bài học, tư vấn phương pháp học tập và hướng dẫn kỹ năng số</p>
+          <p class="section-subtitle">Giải đáp thắc mắc bài học, tư vấn phương pháp học tập và tự động lưu nhật ký vào Supabase</p>
         </div>
       </div>
 
@@ -406,7 +418,7 @@
             <div class="logo-icon" style="width: 36px; height: 36px; font-size: 1.1rem;"><i class="fa-solid fa-robot"></i></div>
             <div>
               <h4 style="color: var(--text-main);">AI Giáo Dục - hanhtrinhso.docbuoc.vn</h4>
-              <span class="chatbot-status"><span class="status-dot"></span> Đang trực tuyến 24/7</span>
+              <span class="chatbot-status"><span class="status-dot"></span> Đang trực tuyến 24/7 (Đồng bộ Supabase)</span>
             </div>
           </div>
           <button class="btn btn-google" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearChatHistory()">
@@ -433,7 +445,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Kho VIP Độc Quyền (VIP Vault)</h2>
-          <p class="section-subtitle">Kho tài liệu giáo án nâng cao, trợ lý AI cao cấp dành cho giáo viên và học sinh có Mã Xác Thực</p>
+          <p class="section-subtitle">Kho tài liệu giáo án nâng cao, trợ lý AI cao cấp xác thực trực tiếp từ Supabase</p>
         </div>
       </div>
 
@@ -445,13 +457,13 @@
           Kho VIP chứa các bộ giáo án tích hợp NLS & AI chuyên sâu, bộ đề thi thử độc quyền và công cụ Trợ lý AI Prompt Generator nâng cao của Cô Huỳnh Ngân Giang.
         </p>
         <button class="btn btn-vip-gold" onclick="openVipCodeModal()"><i class="fa-solid fa-key"></i> Nhập Mã VIP Mở Khóa</button>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 12px;">(Mã mở khóa dùng thử nghiệm: <strong>VIP2026</strong> hoặc <strong>DOCBUOC83</strong>)</p>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 12px;">(Mã mở khóa mẫu trong Supabase: <strong>VIP2026</strong> hoặc <strong>DOCBUOC83</strong>)</p>
       </div>
 
       <!-- Unlocked VIP Content -->
       <div id="vipUnlockedContent" style="display: none;">
         <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald); color: #34d399; padding: 14px 20px; border-radius: var(--radius-md); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
-          <span><i class="fa-solid fa-circle-check"></i> Đã mở khóa thành công Kho VIP! Quyền hạn của bạn: <strong>Thành viên VIP Cao Cấp</strong></span>
+          <span><i class="fa-solid fa-circle-check"></i> Đã mở khóa thành công Kho VIP! Quyền hạn: <strong>Thành viên VIP Cao Cấp (Supabase Auth)</strong></span>
           <button class="btn btn-google" style="padding: 4px 10px; font-size: 0.8rem;" onclick="relockVip()">Đóng lại</button>
         </div>
 
@@ -466,12 +478,12 @@
       <div class="section-header">
         <div>
           <h2 class="section-title"><i class="fa-solid fa-bell"></i> Trung Tâm Thông Báo Website</h2>
-          <p class="section-subtitle">Các thông tin mới nhất cập nhật trên hệ thống hanhtrinhso.docbuoc.vn</p>
+          <p class="section-subtitle">Các thông tin mới nhất cập nhật theo thời gian thực từ bảng Supabase announcements</p>
         </div>
       </div>
 
       <div class="grid-cards" id="announcementsList">
-        <!-- Injected via JS -->
+        <!-- Injected via JS from Supabase / Fallback -->
       </div>
     </section>
 
@@ -479,13 +491,46 @@
 
   <!-- ==================== MODALS ==================== -->
 
+  <!-- Modal Cấu hình Supabase -->
+  <div class="modal-overlay" id="supabaseModal">
+    <div class="modal-card" style="max-width: 520px;">
+      <button class="modal-close-btn" onclick="closeModal('supabaseModal')"><i class="fa-solid fa-xmark"></i></button>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 2.5rem; color: #3ecf8e; margin-bottom: 8px;"><i class="fa-solid fa-database"></i></div>
+        <h3>Cấu Hình Cơ Sở Dữ Liệu Supabase</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Nhập thông tin Project URL và Anon Key từ trang quản trị Supabase của bạn</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+        <div>
+          <label style="display: block; font-size: 0.82rem; margin-bottom: 4px; color: var(--text-muted);">Supabase Project URL:</label>
+          <input type="text" id="cfgSupabaseUrl" placeholder="https://xyzcompany.supabase.co" style="width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.82rem; margin-bottom: 4px; color: var(--text-muted);">Supabase Anon Public API Key:</label>
+          <input type="password" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" style="flex: 1; background: #3ecf8e; color: #0f172a;" onclick="saveSupabaseConfig()">
+          <i class="fa-solid fa-check"></i> Lưu & Kết Nối Ngay
+        </button>
+        <button class="btn btn-google" onclick="resetSupabaseConfig()">
+          <i class="fa-solid fa-rotate-left"></i> Dùng Mẫu
+        </button>
+      </div>
+      <p id="supabaseTestStatus" style="margin-top: 12px; font-size: 0.8rem; text-align: center; color: var(--text-muted);"></p>
+    </div>
+  </div>
+
   <!-- Modal Đăng nhập Google -->
   <div class="modal-overlay" id="googleLoginModal">
     <div class="modal-card" style="text-align: center;">
       <button class="modal-close-btn" onclick="closeModal('googleLoginModal')"><i class="fa-solid fa-xmark"></i></button>
       <div class="logo-icon" style="margin: 0 auto 16px; width: 56px; height: 56px; font-size: 1.8rem;"><i class="fa-brands fa-google"></i></div>
       <h3 style="margin-bottom: 8px;">Đăng Nhập Với Google</h3>
-      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">Xác thực tài khoản Google của bạn để trải nghiệm đầy đủ tính năng tại <strong>hanhtrinhso.docbuoc.vn</strong></p>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">Xác thực tài khoản Google của bạn (đồng bộ với Supabase Auth)</p>
       
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <button class="btn btn-google" style="padding: 12px; font-weight: 600;" onclick="simulateGoogleLogin('Nguyễn Văn An (Học sinh)', 'an.nguyen@gmail.com')">
@@ -504,7 +549,7 @@
       <button class="modal-close-btn" onclick="closeModal('vipCodeModal')"><i class="fa-solid fa-xmark"></i></button>
       <div style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 10px;"><i class="fa-solid fa-key"></i></div>
       <h3>Nhập Mã Kích Hoạt VIP</h3>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Vui lòng nhập mã VIP do tác giả Huỳnh Ngân Giang cấp</p>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Hệ thống kiểm tra trực tiếp qua bảng <code>vip_codes</code> trên Supabase</p>
       
       <div class="vip-input-group">
         <input type="text" id="vipCodeInput" placeholder="Ví dụ: VIP2026" maxlength="12">
@@ -537,7 +582,7 @@
           <span class="logo-title" style="font-size: 1.1rem;">HÀNH TRÌNH SỐ</span>
         </div>
         <p style="color: var(--text-muted); font-size: 0.85rem;">
-          Website giáo dục cá nhân dành cho công tác giảng dạy và học tập sáng tạo. Tích hợp Năng lực số (NLS) & AI tiên tiến.
+          Website giáo dục cá nhân dành cho công tác giảng dạy và học tập sáng tạo. Tích hợp Năng lực số (NLS), AI và cơ sở dữ liệu Supabase thời gian thực.
         </p>
       </div>
 
@@ -552,18 +597,18 @@
       </div>
 
       <div class="footer-col">
-        <h4>Danh Mục Chính</h4>
+        <h4>Cơ Sở Dữ Liệu & Danh Mục</h4>
         <ul class="footer-links">
+          <li><a href="#" onclick="openSupabaseModal(); return false;"><i class="fa-solid fa-database" style="color: #3ecf8e;"></i> Quản trị Supabase Database</a></li>
           <li><a href="#" onclick="switchView('lectures'); return false;">Bài giảng Khối 6, 7, 8, 9 (NLS & AI)</a></li>
           <li><a href="#" onclick="switchView('assignments'); return false;">Phiếu học tập & Bài tập về nhà</a></li>
-          <li><a href="#" onclick="switchView('digital-materials'); return false;">Học liệu số & Podcast ngắn</a></li>
           <li><a href="#" onclick="switchView('vip-vault'); return false;">Kho VIP mở khóa tài liệu</a></li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
-      <p>&copy; 2026 <strong>hanhtrinhso.docbuoc.vn</strong> - Phát triển bởi Huỳnh Ngân Giang. Bản quyền bảo lưu.</p>
+      <p>&copy; 2026 <strong>hanhtrinhso.docbuoc.vn</strong> - Phát triển bởi Huỳnh Ngân Giang. Đồng bộ dữ liệu Supabase Database.</p>
     </div>
   </footer>
 

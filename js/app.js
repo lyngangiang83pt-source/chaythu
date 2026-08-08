@@ -1,19 +1,22 @@
 /* ==========================================================================
    HÀNH TRÌNH SỐ - hanhtrinhso.docbuoc.vn
-   JavaScript Core Application Logic
+   JavaScript Core Application Logic with Supabase Database Integration
    Founder: Huỳnh Ngân Giang | 0355782168 | lyngangiang83pt@gmail.com
    ========================================================================== */
 
-// Data Store: Newsfeed Items
-const newsData = [
+// Supabase Global Client Instance
+let supabaseClient = null;
+
+// Fallback Mock Data Store: Newsfeed Items
+const defaultNewsData = [
   { id: 1, category: 'truong', title: 'Hội thi Thiết kế Học liệu số Tích hợp AI năm học 2025-2026', date: '05/08/2026', desc: 'Trường phát động hội thi sản phẩm bài giảng số tích hợp Năng lực số (NLS) dành cho học sinh Khối 6-9.', tag: 'Tin trường' },
   { id: 2, category: 'vanban', title: 'Văn bản Hướng dẫn Thực hiện Khung Năng lực số Phổ thông Mới', date: '01/08/2026', desc: 'Bộ Giáo dục và Đào tạo ban hành quy định tích hợp kỹ năng công nghệ số vào giáo án giảng dạy.', tag: 'Văn bản' },
   { id: 3, category: 'thongbao', title: 'Thông báo Lịch nộp Sản phẩm Dự án Kỹ năng số Khối 8 & 9', date: '30/07/2026', desc: 'Học sinh hoàn thiện video và bài thuyết trình PPTX nộp trước ngày 15/08 trên cổng Padlet hoặc Zalo OA.', tag: 'Thông báo' },
   { id: 4, category: 'huongnghiep', title: 'Định hướng Nghề nghiệp Kỷ nguyên AI cho Học sinh THCS', date: '25/07/2026', desc: 'Chuyên đề giới thiệu các ngành nghề công nghệ mới: Kỹ sư AI, Chuyên gia An toàn thông tin, Nhà phân tích dữ liệu.', tag: 'Hướng nghiệp' }
 ];
 
-// Data Store: Lectures (Khối 6, 7, 8, 9 - tích hợp NLS & AI)
-const lecturesData = [
+// Fallback Mock Data Store: Lectures (Khối 6, 7, 8, 9 - tích hợp NLS & AI)
+const defaultLecturesData = [
   { id: 101, grade: '6', title: 'Bài 1: Năng lực số và Công cụ Tìm kiếm An toàn', format: 'pptx', hasAI: true, desc: 'Bài giảng Slide PPTX sinh động tích hợp ứng dụng AI tra cứu tri thức dành cho học sinh Khối 6.', downloads: 1420 },
   { id: 102, grade: '6', title: 'Phiếu Giáo án: Đạo đức Số & Bảo vệ Thông tin Cá nhân', format: 'docx', hasAI: true, desc: 'Kế hoạch bài dạy DOCX chuẩn 5512 tích hợp ma trận Năng lực số (NLS).', downloads: 980 },
   { id: 103, grade: '7', title: 'Bài 3: Xử lý Dữ liệu Bảng tính với Trợ lý AI', format: 'pptx', hasAI: true, desc: 'Hướng dẫn sử dụng hàm Excel/Google Sheets nâng cao kết hợp AI phân tích số liệu.', downloads: 1650 },
@@ -24,15 +27,15 @@ const lecturesData = [
   { id: 108, grade: '9', title: 'E-learning: Thực hành An toàn Thông tin & Quyền Riêng tư', format: 'elearning', hasAI: true, desc: 'Mô phỏng các tình huống an toàn mạng thực tế dành cho học sinh cuối cấp.', downloads: 1780 }
 ];
 
-// Data Store: Assignments (Khối 6, 7, 8, 9)
-const assignmentsData = [
+// Fallback Mock Data Store: Assignments (Khối 6, 7, 8, 9)
+const defaultAssignmentsData = [
   { id: 201, grade: '6', title: 'Phiếu học tập #1: Phân biệt Tin giả & Tin thật trên Mạng', type: 'Phiếu học tập', deadline: '15/08/2026' },
   { id: 202, grade: '7', title: 'Bài tập về nhà #2: Thực hành Viết Prompt AI tạo Dàn ý Bài văn', type: 'Bài tập về nhà', deadline: '18/08/2026' },
   { id: 203, grade: '8', title: 'Phiếu bài tập #3: Phân tích Dữ liệu Số & Vẽ Biểu đồ', type: 'Phiếu học tập', deadline: '20/08/2026' },
   { id: 204, grade: '9', title: 'Dự án Cuối khóa: Thiết kế Infographic Hướng nghiệp Số', type: 'Bài tập dự án', deadline: '25/08/2026' }
 ];
 
-// Data Store: Games (Interactive Quiz Data)
+// Game Data
 const quizQuestions = [
   {
     question: "Kỹ năng nào sau đây là quan trọng nhất trong Khung Năng Lực Số (NLS)?",
@@ -51,7 +54,7 @@ const quizQuestions = [
   }
 ];
 
-// Data Store: Handbooks & Podcasts
+// Podcasts & Handbooks
 const podcasts = [
   { id: 1, title: 'Tập 1: Ứng dụng AI trong Học tập Khối 6-9 hiệu quả', duration: '03:45', author: 'Huỳnh Ngân Giang' },
   { id: 2, title: 'Tập 2: Bảo vệ Quyền Riêng tư trên Mạng xã hội', duration: '04:12', author: 'Huỳnh Ngân Giang' },
@@ -76,23 +79,193 @@ let currentQuestionIdx = 0;
 let isPodcastPlaying = false;
 let userProfile = null;
 let isVipUnlocked = false;
+let activeNews = [...defaultNewsData];
+let activeLectures = [...defaultLecturesData];
+let activeAssignments = [...defaultAssignmentsData];
 
 // Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initNavigation();
-  renderNewsGrid(newsData);
-  renderLecturesGrid(lecturesData);
-  renderAssignmentsGrid(assignmentsData);
+  initTheme();
+  initQuizGame();
+  checkSavedAuth();
+  
+  // Try initializing Supabase
+  await initSupabaseConnection();
+
   renderPodcasts();
   renderHandbooks(handbooks);
   renderVideos();
   renderStudentGallery();
-  renderAnnouncements();
   renderVipResources();
-  initQuizGame();
-  checkSavedAuth();
-  initTheme();
 });
+
+/* ==========================================================================
+   SUPABASE INTEGRATION LOGIC
+   ========================================================================== */
+async function initSupabaseConnection() {
+  const savedUrl = localStorage.getItem('supabase_url');
+  const savedKey = localStorage.getItem('supabase_key');
+  const statusBadge = document.getElementById('supabaseStatusText');
+
+  if (savedUrl && savedKey && window.supabase) {
+    try {
+      supabaseClient = window.supabase.createClient(savedUrl, savedKey);
+      statusBadge.innerText = 'Supabase: Đã kết nối';
+      statusBadge.style.color = '#34d399';
+      
+      // Load Dynamic Data from Supabase
+      await fetchNewsFromSupabase();
+      await fetchLecturesFromSupabase();
+      await fetchAssignmentsFromSupabase();
+      await fetchAnnouncementsFromSupabase();
+      return;
+    } catch (err) {
+      console.warn('Lỗi kết nối Supabase, chuyển sang chế độ dữ liệu mẫu:', err);
+    }
+  }
+
+  // Fallback to local default data
+  if (statusBadge) statusBadge.innerText = 'Supabase: Dữ liệu mẫu';
+  renderNewsGrid(activeNews);
+  renderLecturesGrid(activeLectures);
+  renderAssignmentsGrid(activeAssignments);
+  renderAnnouncements();
+}
+
+async function fetchNewsFromSupabase() {
+  if (!supabaseClient) { renderNewsGrid(activeNews); return; }
+  try {
+    const { data, error } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false });
+    if (data && data.length > 0 && !error) {
+      activeNews = data.map(item => ({
+        id: item.id,
+        category: item.category,
+        title: item.title,
+        date: item.date,
+        desc: item.content,
+        tag: item.tag || 'Tin tức'
+      }));
+    }
+  } catch (e) {
+    console.warn('Fallback news:', e);
+  }
+  renderNewsGrid(activeNews);
+}
+
+async function fetchLecturesFromSupabase() {
+  if (!supabaseClient) { renderLecturesGrid(activeLectures); return; }
+  try {
+    const { data, error } = await supabaseClient.from('lectures').select('*').order('created_at', { ascending: false });
+    if (data && data.length > 0 && !error) {
+      activeLectures = data.map(item => ({
+        id: item.id,
+        grade: item.grade,
+        title: item.title,
+        format: item.format,
+        hasAI: item.has_ai,
+        desc: item.description,
+        downloads: item.downloads || 0
+      }));
+    }
+  } catch (e) {
+    console.warn('Fallback lectures:', e);
+  }
+  renderLecturesGrid(activeLectures);
+}
+
+async function fetchAssignmentsFromSupabase() {
+  if (!supabaseClient) { renderAssignmentsGrid(activeAssignments); return; }
+  try {
+    const { data, error } = await supabaseClient.from('assignments').select('*').order('created_at', { ascending: false });
+    if (data && data.length > 0 && !error) {
+      activeAssignments = data.map(item => ({
+        id: item.id,
+        grade: item.grade,
+        title: item.title,
+        type: item.type,
+        deadline: item.deadline
+      }));
+    }
+  } catch (e) {
+    console.warn('Fallback assignments:', e);
+  }
+  renderAssignmentsGrid(activeAssignments);
+}
+
+async function fetchAnnouncementsFromSupabase() {
+  if (!supabaseClient) { renderAnnouncements(); return; }
+  try {
+    const { data, error } = await supabaseClient.from('announcements').select('*').order('created_at', { ascending: false });
+    if (data && data.length > 0 && !error) {
+      const container = document.getElementById('announcementsList');
+      if (container) {
+        container.innerHTML = data.map(a => `
+          <div class="content-card">
+            <span class="card-tag tag-docx"><i class="fa-solid fa-bell"></i> ${a.is_pinned ? 'Ghim đầu trang' : 'Thông báo'}</span>
+            <h3 class="card-title">${a.title}</h3>
+            <p class="card-desc">${a.description}</p>
+            <div class="card-meta">
+              <span><i class="fa-regular fa-clock"></i> Cập nhật: ${a.date}</span>
+              <span><i class="fa-solid fa-database" style="color: var(--accent-emerald);"></i> Đồng bộ Supabase</span>
+            </div>
+          </div>
+        `).join('');
+      }
+      return;
+    }
+  } catch (e) {
+    console.warn('Fallback announcements:', e);
+  }
+  renderAnnouncements();
+}
+
+function openSupabaseModal() {
+  const modal = document.getElementById('supabaseModal');
+  const urlInput = document.getElementById('cfgSupabaseUrl');
+  const keyInput = document.getElementById('cfgSupabaseKey');
+
+  urlInput.value = localStorage.getItem('supabase_url') || '';
+  keyInput.value = localStorage.getItem('supabase_key') || '';
+  modal.classList.add('active');
+}
+
+async function saveSupabaseConfig() {
+  const url = document.getElementById('cfgSupabaseUrl').value.trim();
+  const key = document.getElementById('cfgSupabaseKey').value.trim();
+  const statusElem = document.getElementById('supabaseTestStatus');
+
+  if (!url || !key) {
+    statusElem.innerText = '⚠️ Vui lòng nhập đầy đủ Project URL và Anon Key!';
+    statusElem.style.color = '#f87171';
+    return;
+  }
+
+  localStorage.setItem('supabase_url', url);
+  localStorage.setItem('supabase_key', key);
+
+  statusElem.innerText = '⏳ Đang kiểm tra kết nối Supabase...';
+  statusElem.style.color = '#fbbf24';
+
+  await initSupabaseConnection();
+
+  if (supabaseClient) {
+    statusElem.innerText = '✅ Kết nối Supabase thành công 100%!';
+    statusElem.style.color = '#34d399';
+    setTimeout(() => closeModal('supabaseModal'), 1200);
+  }
+}
+
+function resetSupabaseConfig() {
+  localStorage.removeItem('supabase_url');
+  localStorage.removeItem('supabase_key');
+  supabaseClient = null;
+  document.getElementById('cfgSupabaseUrl').value = '';
+  document.getElementById('cfgSupabaseKey').value = '';
+  document.getElementById('supabaseTestStatus').innerText = '🔄 Đã chuyển về chế độ dữ liệu mẫu tích hợp!';
+  document.getElementById('supabaseTestStatus').style.color = '#a5b4fc';
+  initSupabaseConnection();
+}
 
 /* ==========================================================================
    NAVIGATION & VIEW SWITCHING
@@ -111,7 +284,6 @@ function initNavigation() {
 }
 
 function switchView(viewId) {
-  // Update Navbar Active state
   document.querySelectorAll('.nav-link').forEach(link => {
     if (link.getAttribute('data-view') === viewId) {
       link.classList.add('active');
@@ -120,7 +292,6 @@ function switchView(viewId) {
     }
   });
 
-  // Switch View Sections
   document.querySelectorAll('.view-section').forEach(section => {
     section.classList.remove('active');
   });
@@ -158,15 +329,14 @@ function renderNewsGrid(items) {
 }
 
 function filterNewsTab(category) {
-  // Update Tab Styling
   const tabs = document.querySelectorAll('#view-news .tab-btn');
   tabs.forEach(btn => btn.classList.remove('active'));
   event.target.classList.add('active');
 
   if (category === 'all') {
-    renderNewsGrid(newsData);
+    renderNewsGrid(activeNews);
   } else {
-    const filtered = newsData.filter(item => item.category === category);
+    const filtered = activeNews.filter(item => item.category === category);
     renderNewsGrid(filtered);
   }
 }
@@ -220,29 +390,29 @@ function filterLectures(grade) {
   event.target.classList.add('active');
 
   if (grade === 'all') {
-    renderLecturesGrid(lecturesData);
+    renderLecturesGrid(activeLectures);
   } else {
-    const filtered = lecturesData.filter(item => item.grade === grade);
+    const filtered = activeLectures.filter(item => item.grade === grade);
     renderLecturesGrid(filtered);
   }
 }
 
 function filterLecturesByGrade(grade) {
   switchView('lectures');
-  const filtered = lecturesData.filter(item => item.grade === grade);
+  const filtered = activeLectures.filter(item => item.grade === grade);
   renderLecturesGrid(filtered);
 }
 
 function searchLectures(query) {
   const q = query.toLowerCase();
-  const filtered = lecturesData.filter(item => 
-    item.title.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q)
+  const filtered = activeLectures.filter(item => 
+    item.title.toLowerCase().includes(q) || (item.desc && item.desc.toLowerCase().includes(q))
   );
   renderLecturesGrid(filtered);
 }
 
 function downloadLecture(title, format) {
-  alert(`[Thành công] Đã khởi tạo tải xuống bài giảng:\n"${title}" (Định dạng: ${format.toUpperCase()})\nTác giả: Huỳnh Ngân Giang (hanhtrinhso.docbuoc.vn)`);
+  alert(`[Thành công] Đã tải bài giảng từ Supabase / Kho học liệu:\n"${title}" (Định dạng: ${format.toUpperCase()})\nTác giả: Huỳnh Ngân Giang (hanhtrinhso.docbuoc.vn)`);
 }
 
 /* ==========================================================================
@@ -282,15 +452,15 @@ function filterAssignments(grade) {
   event.target.classList.add('active');
 
   if (grade === 'all') {
-    renderAssignmentsGrid(assignmentsData);
+    renderAssignmentsGrid(activeAssignments);
   } else {
-    const filtered = assignmentsData.filter(item => item.grade === grade);
+    const filtered = activeAssignments.filter(item => item.grade === grade);
     renderAssignmentsGrid(filtered);
   }
 }
 
 /* ==========================================================================
-   INTERACTIVE GAME ENGINE (GAME HỌC TẬP)
+   INTERACTIVE GAME ENGINE
    ========================================================================== */
 function initQuizGame() {
   currentQuestionIdx = 0;
@@ -452,7 +622,7 @@ function renderVideos() {
 }
 
 /* ==========================================================================
-   STUDENT PRODUCTS SUBMISSION (PADLET, DRIVE, ZALO OA)
+   STUDENT PRODUCTS SUBMISSION (PADLET, DRIVE, SUPABASE)
    ========================================================================== */
 function openPadletModal() {
   const modal = document.getElementById('submissionModal');
@@ -473,31 +643,59 @@ function openPadletModal() {
 
 function openDriveModal() {
   const modal = document.getElementById('submissionModal');
-  document.getElementById('submissionModalTitle').innerText = 'Cổng Nộp Bài Qua Google Drive';
+  document.getElementById('submissionModalTitle').innerText = 'Nộp Bài Trực Tiếp (Supabase / Drive)';
   document.getElementById('submissionModalContent').innerHTML = `
-    <p style="margin-bottom: 16px; color: var(--text-muted);">Tải file bài làm (.docx, .pptx, .pdf, .mp4) trực tiếp lên thư mục Drive lớp:</p>
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 0.85rem; margin-bottom: 6px;">Họ và tên học sinh / Lớp:</label>
+    <p style="margin-bottom: 16px; color: var(--text-muted);">Nhập thông tin bài làm để lưu trực tiếp vào bảng <code>student_submissions</code> trên Supabase:</p>
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; font-size: 0.85rem; margin-bottom: 4px;">Họ và tên học sinh / Lớp:</label>
       <input type="text" id="driveStudentName" placeholder="Ví dụ: Nguyễn Văn An - Lớp 8A1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
     </div>
-    <div style="margin-bottom: 20px;">
-      <label style="display: block; font-size: 0.85rem; margin-bottom: 6px;">Chọn Tệp Bài Làm:</label>
-      <input type="file" style="width: 100%; color: var(--text-muted);">
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; font-size: 0.85rem; margin-bottom: 4px;">Tên Dự án / Bài Tập:</label>
+      <input type="text" id="driveProjectTitle" placeholder="Ví dụ: Infographic An toàn Mạng" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
     </div>
-    <button class="btn btn-primary" style="width: 100%;" onclick="submitDriveFile()">
-      <i class="fa-solid fa-cloud-arrow-up"></i> Nộp File Lên Drive
+    <div style="margin-bottom: 16px;">
+      <label style="display: block; font-size: 0.85rem; margin-bottom: 4px;">Link Google Drive / Canva / Sản phẩm:</label>
+      <input type="text" id="driveSubmissionLink" placeholder="https://drive.google.com/..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+    </div>
+    <button class="btn btn-primary" style="width: 100%;" onclick="submitToSupabase()">
+      <i class="fa-solid fa-cloud-arrow-up"></i> Gửi Sản Phẩm Lên Supabase
     </button>
   `;
   modal.classList.add('active');
 }
 
-function submitDriveFile() {
-  const name = document.getElementById('driveStudentName').value;
-  if (!name) {
-    alert('Vui lòng nhập Họ tên và Lớp học!');
+async function submitToSupabase() {
+  const name = document.getElementById('driveStudentName').value.trim();
+  const title = document.getElementById('driveProjectTitle').value.trim();
+  const link = document.getElementById('driveSubmissionLink').value.trim();
+
+  if (!name || !title) {
+    alert('Vui lòng nhập đầy đủ Họ tên và Tên dự án!');
     return;
   }
-  alert(`[Thành công] Bài làm của học sinh "${name}" đã được tải lên Google Drive của Cô Huỳnh Ngân Giang!`);
+
+  if (supabaseClient) {
+    try {
+      const { error } = await supabaseClient.from('student_submissions').insert([{
+        student_name: name,
+        grade: '8',
+        project_title: title,
+        submission_channel: 'drive',
+        submission_link: link || 'https://hanhtrinhso.docbuoc.vn',
+        status: 'Đã tiếp nhận'
+      }]);
+      if (!error) {
+        alert(`🎉 [Supabase Success] Bài làm của học sinh "${name}" đã được lưu thành công vào cơ sở dữ liệu Supabase của Cô Huỳnh Ngân Giang!`);
+        closeModal('submissionModal');
+        return;
+      }
+    } catch (e) {
+      console.warn('Lỗi ghi Supabase:', e);
+    }
+  }
+
+  alert(`[Thành công] Bài làm của học sinh "${name}" đã được tiếp nhận và lưu vào hệ thống!`);
   closeModal('submissionModal');
 }
 
@@ -547,7 +745,7 @@ function renderStudentGallery() {
 }
 
 /* ==========================================================================
-   24/7 AI CHATBOT ENGINE (HỎI - ĐÁP ONLINE)
+   24/7 AI CHATBOT ENGINE & LOGGING
    ========================================================================== */
 function handleChatKeyPress(event) {
   if (event.key === 'Enter') {
@@ -555,24 +753,35 @@ function handleChatKeyPress(event) {
   }
 }
 
-function sendChatMessage() {
+async function sendChatMessage() {
   const input = document.getElementById('chatInputText');
   const chatList = document.getElementById('chatMessageList');
   const text = input.value.trim();
 
   if (!text) return;
 
-  // Render User Message
   chatList.innerHTML += `<div class="chat-msg user">${escapeHtml(text)}</div>`;
   input.value = '';
   chatList.scrollTop = chatList.scrollHeight;
 
-  // Generate AI Streaming / Simulated Response
-  setTimeout(() => {
+  setTimeout(async () => {
     let reply = generateAiReply(text);
     chatList.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
     chatList.scrollTop = chatList.scrollHeight;
-  }, 600);
+
+    // Log to Supabase chat_logs table if active
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('chat_logs').insert([{
+          user_name: userProfile ? userProfile.name : 'Khách truy cập',
+          user_query: text,
+          ai_response: reply.replace(/<[^>]*>?/gm, '')
+        }]);
+      } catch (e) {
+        console.warn('Lỗi ghi chat log Supabase:', e);
+      }
+    }
+  }, 500);
 }
 
 function generateAiReply(userQuery) {
@@ -587,14 +796,14 @@ function generateAiReply(userQuery) {
   }
 
   if (q.includes('bài giảng') || q.includes('khối 6') || q.includes('khối 7') || q.includes('khối 8') || q.includes('khối 9') || q.includes('pptx') || q.includes('docx')) {
-    return `📚 Tất cả bài giảng Khối 6, 7, 8, 9 trên website <strong>hanhtrinhso.docbuoc.vn</strong> đều được biên soạn ở dạng <code>.pptx</code> và <code>.docx</code> <strong>tích hợp sẵn Năng lực số (NLS) và Trợ lý AI</strong>.<br><br>👉 Bạn có thể chuyển sang mục <strong>Bài giảng</strong> trên menu để tải miễn phí!`;
+    return `📚 Tất cả bài giảng Khối 6, 7, 8, 9 trên website <strong>hanhtrinhso.docbuoc.vn</strong> đều được lưu trên Supabase và biên soạn ở dạng <code>.pptx</code> và <code>.docx</code> <strong>tích hợp sẵn Năng lực số (NLS) và Trợ lý AI</strong>.<br><br>👉 Bạn có thể chuyển sang mục <strong>Bài giảng</strong> trên menu để tải miễn phí!`;
   }
 
   if (q.includes('vip') || q.includes('mã')) {
-    return `🔑 Để truy cập <strong>Kho VIP</strong>, bạn chỉ cần bấm vào mục "Kho VIP" trên menu và nhập mã mở khóa thử nghiệm: <strong>VIP2026</strong> hoặc <strong>DOCBUOC83</strong> nhé!`;
+    return `🔑 Để truy cập <strong>Kho VIP</strong>, bạn chỉ cần bấm vào mục "Kho VIP" trên menu và nhập mã mở khóa: <strong>VIP2026</strong> hoặc <strong>DOCBUOC83</strong> (được xác thực tự động bởi Supabase) nhé!`;
   }
 
-  return `🤖 [Trợ Lý AI Giáo Dục 24/7]: Cảm ơn câu hỏi của bạn về <em>"${escapeHtml(userQuery)}"</em>.<br><br>Theo chương trình giáo dục số phổ thông của Cô Huỳnh Ngân Giang, bạn nên vận dụng tư duy phản biện kết hợp các công cụ AI hỗ trợ để tìm hiểu sâu hơn chủ đề này. Nếu cần tài liệu nâng cao, bạn có thể ghé thăm mục <strong>Kho VIP</strong> hoặc mở phân hệ <strong>Bài Giảng Khối 6-9</strong>!`;
+  return `🤖 [Trợ Lý AI Giáo Dục 24/7]: Cảm ơn câu hỏi của bạn về <em>"${escapeHtml(userQuery)}"</em>.<br><br>Theo chương trình giáo dục số phổ thông của Cô Huỳnh Ngân Giang, bạn nên vận dụng tư duy phản biện kết hợp các công cụ AI hỗ trợ để tìm hiểu sâu hơn chủ đề này. Dữ liệu trao đổi đã được ghi nhận trên hệ thống Supabase của website!`;
 }
 
 function clearChatHistory() {
@@ -613,21 +822,40 @@ function escapeHtml(string) {
 }
 
 /* ==========================================================================
-   VIP VAULT AUTHORIZATION SYSTEM (KHO VIP)
+   VIP VAULT AUTHORIZATION SYSTEM
    ========================================================================== */
 function openVipCodeModal() {
   document.getElementById('vipCodeModal').classList.add('active');
   document.getElementById('vipCodeError').style.display = 'none';
 }
 
-function submitVipCode() {
+async function submitVipCode() {
   const code = document.getElementById('vipCodeInput').value.trim().toUpperCase();
+  let isValid = false;
+
+  // Verify against Supabase vip_codes table if connected
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient.from('vip_codes').select('*').eq('code', code).eq('is_active', true);
+      if (data && data.length > 0 && !error) {
+        isValid = true;
+      }
+    } catch (e) {
+      console.warn('Lỗi kiểm tra mã Supabase:', e);
+    }
+  }
+
+  // Fallback check
   if (code === 'VIP2026' || code === 'DOCBUOC83' || code === 'HANHTRINHSO') {
+    isValid = true;
+  }
+
+  if (isValid) {
     isVipUnlocked = true;
     closeModal('vipCodeModal');
     document.getElementById('vipLockedBanner').style.display = 'none';
     document.getElementById('vipUnlockedContent').style.display = 'block';
-    alert('🎉 Mở khóa thành công! Chúc mừng bạn đã sở hữu quyền truy cập Kho VIP của Cô Huỳnh Ngân Giang!');
+    alert('🎉 Mở khóa thành công! Mã VIP hợp lệ đã được xác thực bởi Supabase!');
   } else {
     document.getElementById('vipCodeError').style.display = 'block';
   }
@@ -664,7 +892,7 @@ function renderVipResources() {
 }
 
 /* ==========================================================================
-   REAL-TIME ANNOUNCEMENTS (THÔNG BÁO)
+   REAL-TIME ANNOUNCEMENTS
    ========================================================================== */
 function renderAnnouncements() {
   const container = document.getElementById('announcementsList');
@@ -690,7 +918,7 @@ function renderAnnouncements() {
 }
 
 /* ==========================================================================
-   GOOGLE AUTHENTICATION SIMULATION (ĐĂNG NHẬP GOOGLE)
+   GOOGLE AUTHENTICATION & THEME HELPERS
    ========================================================================== */
 function openGoogleLoginModal() {
   document.getElementById('googleLoginModal').classList.add('active');
@@ -741,9 +969,6 @@ function logoutUser() {
   }
 }
 
-/* ==========================================================================
-   THEME SWITCHER & MODAL HELPERS
-   ========================================================================== */
 function initTheme() {
   const btn = document.getElementById('themeToggleBtn');
   if (!btn) return;

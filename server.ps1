@@ -47,3 +47,5 @@ while ($listener.IsListening) {
         # continue loop
     }
 }
+cd C:\Users\WIN11\.gemini\antigravity\scratch\hanhtrinhso-docbuoc
+git push -u origin main
