@@ -11,6 +11,7 @@ import SubmissionsView from './components/SubmissionsView';
 import QaBotView from './components/QaBotView';
 import VipVaultView from './components/VipVaultView';
 import AnnouncementsView from './components/AnnouncementsView';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 import AuthModal from './components/modals/AuthModal';
 import SupabaseModal from './components/modals/SupabaseModal';
@@ -74,6 +75,9 @@ export default function App() {
         {activeView === 'qa' && <QaBotView />}
         {activeView === 'vip' && <VipVaultView />}
         {activeView === 'announcements' && <AnnouncementsView />}
+        {activeView === 'admin' && (
+          <AdminDashboard onExitAdmin={() => setActiveView('home')} />
+        )}
       </main>
 
       <Footer setActiveView={setActiveView} onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)} />

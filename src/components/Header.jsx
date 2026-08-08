@@ -23,7 +23,7 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
         alert('🎉 Đã kích hoạt quyền QUẢN TRỊ VIÊN & VIP PRO thành công!');
       }
     } else {
-      alert(`👑 Chào mừng Quản Trị Viên Sáng Lập: ${user.name}!\nEmail: ${user.email}\nQuyền hạn: VIP PRO Toàn Quyền.`);
+      setActiveView('admin');
     }
   };
 
@@ -111,6 +111,13 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
                   <i className="fa-solid fa-bell"></i> Thông báo
                 </button>
               </li>
+              {user && user.role === 'admin' && (
+                <li className="nav-item">
+                  <button className={`nav-link ${activeView === 'admin' ? 'active' : ''}`} onClick={() => setActiveView('admin')} style={{ color: '#f59e0b', fontWeight: 700 }}>
+                    <i className="fa-solid fa-gauge-high"></i> Quản Trị Admin
+                  </button>
+                </li>
+              )}
             </ul>
           </nav>
 
@@ -122,7 +129,7 @@ export default function Header({ activeView, setActiveView, onOpenSupabaseModal,
             </div>
 
             {user ? (
-              <div className="user-profile-badge" onClick={handleProfileClick} title="Bấm để xem hồ sơ / Quản trị">
+              <div className="user-profile-badge" onClick={handleProfileClick} title="Bấm để vào Bảng Quản Trị Admin / Xem hồ sơ">
                 <img src={user.avatar} alt="Avatar" className="user-avatar" />
                 <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
