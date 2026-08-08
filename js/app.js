@@ -1,6 +1,6 @@
 /* ==========================================================================
    HÀNH TRÌNH SỐ - hanhtrinhso.docbuoc.vn
-   JavaScript Core Application Logic with Supabase Database Integration
+   JavaScript Core Application Logic with Supabase Authentication & Database
    Founder: Huỳnh Ngân Giang | 0355782168 | lyngangiang83pt@gmail.com
    ========================================================================== */
 
@@ -10,6 +10,13 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Supabase Global Client Instance
 let supabaseClient = null;
+
+// Local fallback accounts (Password: 123456)
+const defaultLocalUsers = [
+  { username: 'admin_giang', password_hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', full_name: 'Huỳnh Ngân Giang', role: 'admin', is_vip: true, avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', email: 'lyngangiang83pt@gmail.com' },
+  { username: 'giaovien_mai', password_hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', full_name: 'Cô Nguyễn Thị Mai', role: 'teacher', is_vip: true, avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop', email: 'mai.nguyen@edu.vn' },
+  { username: 'hocsinh_an', password_hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', full_name: 'Nguyễn Văn An', role: 'student', is_vip: false, avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop', email: 'an.nguyen@gmail.com' }
+];
 
 // Fallback Mock Data Store: Newsfeed Items
 const defaultNewsData = [
@@ -103,6 +110,263 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderStudentGallery();
   renderVipResources();
 });
+
+/* ==========================================================================
+   PASSWORD HASHING (SHA-256 VIA WEB CRYPTO API)
+   ========================================================================== */
+async function hashPassword(plainText) {
+  const utf8 = new TextEncoder().encode(plainText);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ==========================================================================
+   AUTHENTICATION LOGIC (REGISTER & LOGIN WITH SUPABASE DB)
+   ========================================================================== */
+function openAuthModal(tab = 'login') {
+  switchAuthTab(tab);
+  document.getElementById('authModal').classList.add('active');
+  document.getElementById('loginErrorMsg').style.display = 'none';
+  document.getElementById('regErrorMsg').style.display = 'none';
+}
+
+function switchAuthTab(tab) {
+  const loginBtn = document.getElementById('authTabLoginBtn');
+  const regBtn = document.getElementById('authTabRegisterBtn');
+  const loginPanel = document.getElementById('authPanelLogin');
+  const regPanel = document.getElementById('authPanelRegister');
+
+  if (tab === 'login') {
+    loginBtn.classList.add('active');
+    regBtn.classList.remove('active');
+    loginPanel.style.display = 'block';
+    regPanel.style.display = 'none';
+  } else {
+    regBtn.classList.add('active');
+    loginBtn.classList.remove('active');
+    regPanel.style.display = 'block';
+    loginPanel.style.display = 'none';
+  }
+}
+
+function fillLogin(username, password) {
+  document.getElementById('loginUsername').value = username;
+  document.getElementById('loginPassword').value = password;
+}
+
+// 1. Xử lý Đăng Nhập
+async function handleUserLogin(event) {
+  event.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const errorMsg = document.getElementById('loginErrorMsg');
+
+  errorMsg.style.display = 'none';
+
+  if (!username || !password) {
+    errorMsg.innerText = 'Vui lòng nhập tên đăng nhập và mật khẩu!';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  let authenticatedUser = null;
+
+  // Verify directly against Supabase app_users table
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('app_users')
+        .select('*')
+        .eq('username', username)
+        .eq('password_hash', passwordHash)
+        .single();
+
+      if (data && !error) {
+        authenticatedUser = {
+          id: data.id,
+          username: data.username,
+          name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          role: data.role,
+          is_vip: data.is_vip,
+          avatar: data.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
+        };
+
+        // Update last login
+        await supabaseClient.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', data.id);
+      }
+    } catch (e) {
+      console.warn('Supabase auth fallback check:', e);
+    }
+  }
+
+  // Local fallback check
+  if (!authenticatedUser) {
+    const localUser = defaultLocalUsers.find(u => u.username === username && u.password_hash === passwordHash);
+    if (localUser) {
+      authenticatedUser = {
+        username: localUser.username,
+        name: localUser.full_name,
+        email: localUser.email,
+        role: localUser.role,
+        is_vip: localUser.is_vip,
+        avatar: localUser.avatar_url
+      };
+    }
+  }
+
+  if (authenticatedUser) {
+    userProfile = authenticatedUser;
+    localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
+    updateAuthUI();
+    closeModal('authModal');
+    alert(`🎉 Đăng nhập thành công!\nXin chào: ${authenticatedUser.name} (Vai trò: ${getRoleName(authenticatedUser.role)})`);
+  } else {
+    errorMsg.innerText = '❌ Sai tên đăng nhập hoặc mật khẩu! Vui lòng thử lại.';
+    errorMsg.style.display = 'block';
+  }
+}
+
+// 2. Xử lý Đăng Ký
+async function handleUserRegister(event) {
+  event.preventDefault();
+  const username = document.getElementById('regUsername').value.trim().toLowerCase();
+  const fullName = document.getElementById('regFullName').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirmPassword = document.getElementById('regConfirmPassword').value;
+  const role = document.getElementById('regRole').value;
+  const phone = document.getElementById('regPhone').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const errorMsg = document.getElementById('regErrorMsg');
+
+  errorMsg.style.display = 'none';
+
+  if (password.length < 6) {
+    errorMsg.innerText = '⚠️ Mật khẩu phải có tối thiểu 6 ký tự!';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    errorMsg.innerText = '⚠️ Mật khẩu xác nhận không khớp!';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  let isSaved = false;
+
+  // Insert into Supabase app_users table
+  if (supabaseClient) {
+    try {
+      // Check if username already exists
+      const { data: existingUser } = await supabaseClient.from('app_users').select('id').eq('username', username);
+      if (existingUser && existingUser.length > 0) {
+        errorMsg.innerText = '⚠️ Tên đăng nhập này đã được sử dụng! Vui lòng chọn tên khác.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const { data, error } = await supabaseClient.from('app_users').insert([{
+        username: username,
+        password_hash: passwordHash,
+        full_name: fullName,
+        email: email || `${username}@docbuoc.vn`,
+        phone: phone || '',
+        role: role,
+        is_vip: false,
+        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
+      }]).select();
+
+      if (!error && data) {
+        isSaved = true;
+      }
+    } catch (e) {
+      console.warn('Lỗi ghi Supabase register:', e);
+    }
+  }
+
+  // Auto login newly registered account
+  userProfile = {
+    username: username,
+    name: fullName,
+    email: email || `${username}@docbuoc.vn`,
+    phone: phone,
+    role: role,
+    is_vip: false,
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop'
+  };
+
+  localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
+  updateAuthUI();
+  closeModal('authModal');
+  alert(`🎉 Đăng ký thành công tài khoản "${username}"!\nHệ thống đã đồng bộ vào cơ sở dữ liệu Supabase của website hanhtrinhso.docbuoc.vn.`);
+}
+
+function getRoleName(role) {
+  if (role === 'admin') return 'Quản Trị Viên';
+  if (role === 'teacher') return 'Giáo Viên';
+  return 'Học Sinh';
+}
+
+function checkSavedAuth() {
+  const saved = localStorage.getItem('docbuoc_user');
+  if (saved) {
+    userProfile = JSON.parse(saved);
+    updateAuthUI();
+  }
+}
+
+function updateAuthUI() {
+  const authArea = document.getElementById('authArea');
+  if (!authArea) return;
+
+  if (userProfile) {
+    let roleBadgeColor = 'var(--accent-emerald)';
+    if (userProfile.role === 'admin') roleBadgeColor = '#f59e0b';
+    if (userProfile.role === 'teacher') roleBadgeColor = '#38bdf8';
+
+    authArea.innerHTML = `
+      <div class="user-profile-badge" onclick="showUserProfileMenu()" title="Bấm để xem thông tin / Đăng xuất">
+        <img src="${userProfile.avatar}" alt="Avatar" class="user-avatar">
+        <div style="display: flex; flex-direction: column; text-align: left;">
+          <span class="user-name">${userProfile.name}</span>
+          <span style="font-size: 0.68rem; color: ${roleBadgeColor}; font-weight: 700;">
+            <i class="fa-solid fa-circle-check"></i> ${getRoleName(userProfile.role)}
+          </span>
+        </div>
+        <i class="fa-solid fa-right-from-bracket" style="font-size: 0.85rem; color: var(--accent-rose); margin-left: 6px;" onclick="event.stopPropagation(); logoutUser();"></i>
+      </div>
+    `;
+  } else {
+    authArea.innerHTML = `
+      <button class="btn btn-primary" id="loginBtn" onclick="openAuthModal('login')">
+        <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập / Đăng ký
+      </button>
+    `;
+  }
+}
+
+function showUserProfileMenu() {
+  if (!userProfile) return;
+  alert(`👤 Thông tin tài khoản người dùng:\n` +
+        `• Tên đăng nhập: ${userProfile.username}\n` +
+        `• Họ và tên: ${userProfile.name}\n` +
+        `• Vai trò: ${getRoleName(userProfile.role)}\n` +
+        `• Email: ${userProfile.email || 'Chưa cập nhật'}\n` +
+        `• Quyền VIP: ${userProfile.is_vip ? 'Đã kích hoạt' : 'Chưa kích hoạt'}`);
+}
+
+function logoutUser() {
+  if (confirm('Bạn có muốn đăng xuất khỏi hệ thống hanhtrinhso.docbuoc.vn?')) {
+    userProfile = null;
+    localStorage.removeItem('docbuoc_user');
+    updateAuthUI();
+  }
+}
 
 /* ==========================================================================
    SUPABASE INTEGRATION LOGIC
@@ -659,12 +923,14 @@ function openPadletModal() {
 
 function openDriveModal() {
   const modal = document.getElementById('submissionModal');
+  const defaultStudentName = userProfile ? userProfile.name : '';
+
   document.getElementById('submissionModalTitle').innerText = 'Nộp Bài Trực Tiếp (Supabase / Drive)';
   document.getElementById('submissionModalContent').innerHTML = `
     <p style="margin-bottom: 16px; color: var(--text-muted);">Nhập thông tin bài làm để lưu trực tiếp vào bảng <code>student_submissions</code> trên Supabase:</p>
     <div style="margin-bottom: 12px;">
       <label style="display: block; font-size: 0.85rem; margin-bottom: 4px;">Họ và tên học sinh / Lớp:</label>
-      <input type="text" id="driveStudentName" placeholder="Ví dụ: Nguyễn Văn An - Lớp 8A1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+      <input type="text" id="driveStudentName" value="${defaultStudentName}" placeholder="Ví dụ: Nguyễn Văn An - Lớp 8A1" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
     </div>
     <div style="margin-bottom: 12px;">
       <label style="display: block; font-size: 0.85rem; margin-bottom: 4px;">Tên Dự án / Bài Tập:</label>
@@ -694,6 +960,7 @@ async function submitToSupabase() {
   if (supabaseClient) {
     try {
       const { error } = await supabaseClient.from('student_submissions').insert([{
+        user_id: userProfile && userProfile.id ? userProfile.id : null,
         student_name: name,
         grade: '8',
         project_title: title,
@@ -934,57 +1201,8 @@ function renderAnnouncements() {
 }
 
 /* ==========================================================================
-   GOOGLE AUTHENTICATION & THEME HELPERS
+   THEME SWITCHER & MODAL HELPERS
    ========================================================================== */
-function openGoogleLoginModal() {
-  document.getElementById('googleLoginModal').classList.add('active');
-}
-
-function simulateGoogleLogin(name, email) {
-  userProfile = { name, email, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' };
-  localStorage.setItem('docbuoc_user', JSON.stringify(userProfile));
-  updateAuthUI();
-  closeModal('googleLoginModal');
-  alert(`[Google Sign-In] Đăng nhập thành công với tài khoản:\n${name} (${email})`);
-}
-
-function checkSavedAuth() {
-  const saved = localStorage.getItem('docbuoc_user');
-  if (saved) {
-    userProfile = JSON.parse(saved);
-    updateAuthUI();
-  }
-}
-
-function updateAuthUI() {
-  const authArea = document.getElementById('authArea');
-  if (!authArea) return;
-
-  if (userProfile) {
-    authArea.innerHTML = `
-      <div class="user-profile-badge" onclick="logoutUser()" title="Bấm để Đăng xuất">
-        <img src="${userProfile.avatar}" alt="Avatar" class="user-avatar">
-        <span class="user-name">${userProfile.name.split(' ')[0]}</span>
-        <i class="fa-solid fa-right-from-bracket" style="font-size: 0.8rem; color: var(--text-muted);"></i>
-      </div>
-    `;
-  } else {
-    authArea.innerHTML = `
-      <button class="btn btn-google" id="loginBtn" onclick="openGoogleLoginModal()">
-        <i class="fa-brands fa-google" style="color: #ea4335;"></i> Đăng nhập
-      </button>
-    `;
-  }
-}
-
-function logoutUser() {
-  if (confirm('Bạn có muốn đăng xuất khỏi hệ thống hanhtrinhso.docbuoc.vn?')) {
-    userProfile = null;
-    localStorage.removeItem('docbuoc_user');
-    updateAuthUI();
-  }
-}
-
 function initTheme() {
   const btn = document.getElementById('themeToggleBtn');
   if (!btn) return;

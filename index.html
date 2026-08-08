@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HÀNH TRÌNH SỐ - hanhtrinhso.docbuoc.vn | Huỳnh Ngân Giang</title>
-  <meta name="description" content="Website giáo dục cá nhân sáng lập bởi Huỳnh Ngân Giang - Kho học liệu số, bài giảng NLS & AI Khối 6-9, game học tập, trợ lý AI 24/7 kết nối Supabase.">
+  <meta name="description" content="Website giáo dục cá nhân sáng lập bởi Huỳnh Ngân Giang - Kho học liệu số, bài giảng NLS & AI Khối 6-9, game học tập, trợ lý AI 24/7, xác thực người dùng Supabase DB.">
   
   <!-- Google Fonts & FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -72,8 +72,8 @@
         </div>
 
         <div id="authArea">
-          <button class="btn btn-google" id="loginBtn" onclick="openGoogleLoginModal()">
-            <i class="fa-brands fa-google" style="color: #ea4335;"></i> Đăng nhập
+          <button class="btn btn-primary" id="loginBtn" onclick="openAuthModal('login')">
+            <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập / Đăng ký
           </button>
         </div>
       </div>
@@ -93,7 +93,7 @@
           </div>
           <h1 class="hero-title">Hành Trình Số - Khơi Nguồn Tri Thức Đổi Mới</h1>
           <p class="hero-desc">
-            Website giáo dục cá nhân của sáng lập viên <strong>Huỳnh Ngân Giang</strong>. Nơi chia sẻ bài giảng DOCX, PPTX tích hợp Năng lực số (NLS) & Trợ lý AI cho Khối 6, 7, 8, 9, học liệu số, phim giáo dục và game học tập trực quan kết nối đồng bộ cơ sở dữ liệu Supabase.
+            Website giáo dục cá nhân của sáng lập viên <strong>Huỳnh Ngân Giang</strong>. Nơi chia sẻ bài giảng DOCX, PPTX tích hợp Năng lực số (NLS) & Trợ lý AI cho Khối 6, 7, 8, 9, học liệu số, phim giáo dục và game học tập kết nối trực tiếp hệ thống đăng nhập tài khoản <strong>Supabase Database</strong>.
           </p>
           <div class="hero-cta-group">
             <button class="btn btn-primary" onclick="switchView('lectures')">
@@ -102,8 +102,8 @@
             <button class="btn btn-vip-gold" onclick="switchView('vip-vault')">
               <i class="fa-solid fa-key"></i> Truy Cập Kho VIP
             </button>
-            <button class="btn btn-google" onclick="openSupabaseModal()">
-              <i class="fa-solid fa-database" style="color: #3ecf8e;"></i> Kết nối Supabase
+            <button class="btn btn-google" onclick="openAuthModal('register')">
+              <i class="fa-solid fa-user-plus"></i> Đăng Ký Tài Khoản Mới
             </button>
           </div>
 
@@ -194,7 +194,7 @@
         <div class="content-card">
           <span class="card-tag tag-docx"><i class="fa-solid fa-file-arrow-up"></i> Nộp Bài Tập</span>
           <h3 class="card-title">Cổng Nộp Sản Phẩm HS</h3>
-          <p class="card-desc">Nộp bài dễ dàng qua Padlet, Google Drive hoặc lưu trực tiếp vào bảng Supabase.</p>
+          <p class="card-desc">Nộp bài dễ dàng qua Padlet, Google Drive hoặc lưu trực tiếp vào bảng Supabase theo tài khoản học sinh.</p>
           <div class="card-actions">
             <button class="btn btn-primary" onclick="switchView('student-products')"><i class="fa-solid fa-upload"></i> Nộp Bài</button>
           </div>
@@ -491,14 +491,130 @@
 
   <!-- ==================== MODALS ==================== -->
 
+  <!-- Modal Đăng Ký & Đăng Nhập Tài Khoản (Username & Password) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card" style="max-width: 480px; padding: 28px;">
+      <button class="modal-close-btn" onclick="closeModal('authModal')"><i class="fa-solid fa-xmark"></i></button>
+      
+      <!-- Auth Modal Tabs -->
+      <div class="tabs-header" style="justify-content: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glass);">
+        <button class="tab-btn active" id="authTabLoginBtn" onclick="switchAuthTab('login')">
+          <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
+        </button>
+        <button class="tab-btn" id="authTabRegisterBtn" onclick="switchAuthTab('register')">
+          <i class="fa-solid fa-user-plus"></i> Đăng Ký Mới
+        </button>
+      </div>
+
+      <!-- FORM 1: ĐĂNG NHẬP -->
+      <div id="authPanelLogin">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.3rem;">Đăng Nhập Tài Khoản</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Sử dụng Username & Mật khẩu đồng bộ cơ sở dữ liệu Supabase</p>
+        </div>
+
+        <form onsubmit="handleUserLogin(event)">
+          <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-muted);">Tên đăng nhập (Username):</label>
+            <div style="position: relative;">
+              <input type="text" id="loginUsername" required placeholder="Ví dụ: admin_giang hoặc hocsinh_an" style="width: 100%; padding: 10px 14px 10px 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+              <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 18px;">
+            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-muted);">Mật khẩu:</label>
+            <div style="position: relative;">
+              <input type="password" id="loginPassword" required placeholder="Nhập mật khẩu của bạn..." style="width: 100%; padding: 10px 14px 10px 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+              <i class="fa-solid fa-lock" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            </div>
+          </div>
+
+          <div id="loginErrorMsg" style="color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 12px; display: none;"></div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; margin-bottom: 16px;">
+            <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Ngay
+          </button>
+
+          <!-- Quick Test Account Suggestion -->
+          <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted);">
+            <span>💡 Tài khoản mẫu Supabase (MK: <strong>123456</strong>):</span>
+            <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-google" style="padding: 2px 8px; font-size: 0.75rem;" onclick="fillLogin('admin_giang', '123456')">Admin Giang</button>
+              <button type="button" class="btn btn-google" style="padding: 2px 8px; font-size: 0.75rem;" onclick="fillLogin('giaovien_mai', '123456')">GV Mai</button>
+              <button type="button" class="btn btn-google" style="padding: 2px 8px; font-size: 0.75rem;" onclick="fillLogin('hocsinh_an', '123456')">HS An</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- FORM 2: ĐĂNG KÝ MỚI -->
+      <div id="authPanelRegister" style="display: none;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.3rem;">Tạo Tài Khoản Mới</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Lưu trữ trực tiếp vào bảng <code>app_users</code> trên Supabase</p>
+        </div>
+
+        <form onsubmit="handleUserRegister(event)">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Tên đăng nhập (Username):</label>
+              <input type="text" id="regUsername" required placeholder="nguyenan8a1" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Họ và tên:</label>
+              <input type="text" id="regFullName" required placeholder="Nguyễn Văn An" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Mật khẩu:</label>
+              <input type="password" id="regPassword" required placeholder="Tối thiểu 6 ký tự" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Xác nhận mật khẩu:</label>
+              <input type="password" id="regConfirmPassword" required placeholder="Nhập lại mật khẩu" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Vai trò người dùng:</label>
+              <select id="regRole" style="width: 100%; padding: 8px 10px; background: #1e293b; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+                <option value="student">Học sinh</option>
+                <option value="teacher">Giáo viên</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Số điện thoại / Zalo:</label>
+              <input type="text" id="regPhone" placeholder="0355782168" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted);">Email liên hệ:</label>
+            <input type="email" id="regEmail" placeholder="hocsinh@gmail.com" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); color: var(--text-main);">
+          </div>
+
+          <div id="regErrorMsg" style="color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 10px; display: none;"></div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fa-solid fa-user-plus"></i> Đăng Ký Tài Khoản Mới
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Cấu hình Supabase -->
   <div class="modal-overlay" id="supabaseModal">
     <div class="modal-card" style="max-width: 520px;">
       <button class="modal-close-btn" onclick="closeModal('supabaseModal')"><i class="fa-solid fa-xmark"></i></button>
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 2.5rem; color: #3ecf8e; margin-bottom: 8px;"><i class="fa-solid fa-database"></i></div>
-        <h3>Cấu Hình Cơ Sở Dữ Liệu Supabase</h3>
-        <p style="color: var(--text-muted); font-size: 0.85rem;">Nhập thông tin Project URL và Anon Key từ trang quản trị Supabase của bạn</p>
+        <h3>Cơ Sở Dữ Liệu Supabase</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Thông tin dự án Supabase đã được nạp sẵn</p>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
@@ -517,29 +633,10 @@
           <i class="fa-solid fa-check"></i> Lưu & Kết Nối Ngay
         </button>
         <button class="btn btn-google" onclick="resetSupabaseConfig()">
-          <i class="fa-solid fa-rotate-left"></i> Dùng Mẫu
+          <i class="fa-solid fa-rotate-left"></i> Khôi Phục Mặc Định
         </button>
       </div>
       <p id="supabaseTestStatus" style="margin-top: 12px; font-size: 0.8rem; text-align: center; color: var(--text-muted);"></p>
-    </div>
-  </div>
-
-  <!-- Modal Đăng nhập Google -->
-  <div class="modal-overlay" id="googleLoginModal">
-    <div class="modal-card" style="text-align: center;">
-      <button class="modal-close-btn" onclick="closeModal('googleLoginModal')"><i class="fa-solid fa-xmark"></i></button>
-      <div class="logo-icon" style="margin: 0 auto 16px; width: 56px; height: 56px; font-size: 1.8rem;"><i class="fa-brands fa-google"></i></div>
-      <h3 style="margin-bottom: 8px;">Đăng Nhập Với Google</h3>
-      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">Xác thực tài khoản Google của bạn (đồng bộ với Supabase Auth)</p>
-      
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <button class="btn btn-google" style="padding: 12px; font-weight: 600;" onclick="simulateGoogleLogin('Nguyễn Văn An (Học sinh)', 'an.nguyen@gmail.com')">
-          <i class="fa-brands fa-google" style="color: #ea4335;"></i> Đăng nhập với tư cách Học sinh (an.nguyen@gmail.com)
-        </button>
-        <button class="btn btn-google" style="padding: 12px; font-weight: 600;" onclick="simulateGoogleLogin('Cô Nguyễn Thị Mai (Giáo viên)', 'mai.nguyen@edu.vn')">
-          <i class="fa-brands fa-google" style="color: #4285f4;"></i> Đăng nhập với tư cách Giáo viên (mai.nguyen@edu.vn)
-        </button>
-      </div>
     </div>
   </div>
 
@@ -582,7 +679,7 @@
           <span class="logo-title" style="font-size: 1.1rem;">HÀNH TRÌNH SỐ</span>
         </div>
         <p style="color: var(--text-muted); font-size: 0.85rem;">
-          Website giáo dục cá nhân dành cho công tác giảng dạy và học tập sáng tạo. Tích hợp Năng lực số (NLS), AI và cơ sở dữ liệu Supabase thời gian thực.
+          Website giáo dục cá nhân dành cho công tác giảng dạy và học tập sáng tạo. Tích hợp Năng lực số (NLS), AI và hệ thống xác thực người dùng Supabase Database.
         </p>
       </div>
 
