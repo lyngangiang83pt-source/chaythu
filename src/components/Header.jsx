@@ -1,0 +1,157 @@
+import React from 'react';
+import { useAuth } from '../context/AuthContext';
+
+export default function Header({ activeView, setActiveView, onOpenSupabaseModal, onToggleTheme, isDarkMode }) {
+  const { user, logout, setIsAuthModalOpen, setAuthModalTab, upgradeToAdmin } = useAuth();
+
+  const handleOpenLogin = () => {
+    setAuthModalTab('login');
+    setIsAuthModalOpen(true);
+  };
+
+  const getRoleBadge = (role) => {
+    if (role === 'admin') return { text: '👑 Quản Trị Viên', color: '#f59e0b' };
+    if (role === 'teacher') return { text: '🎓 Giáo Viên', color: '#38bdf8' };
+    return { text: 'Học Sinh', color: 'var(--accent-emerald)' };
+  };
+
+  const handleProfileClick = () => {
+    if (!user) return;
+    if (user.role !== 'admin') {
+      if (window.confirm(`👤 Tài khoản: ${user.name}\nVai trò: ${user.role}\n\n👉 Bạn có muốn KÍCH HOẠT QUYỀN ADMIN & VIP TOÀN QUYỀN ngay bây giờ?`)) {
+        upgradeToAdmin();
+        alert('🎉 Đã kích hoạt quyền QUẢN TRỊ VIÊN & VIP PRO thành công!');
+      }
+    } else {
+      alert(`👑 Chào mừng Quản Trị Viên Sáng Lập: ${user.name}!\nEmail: ${user.email}\nQuyền hạn: VIP PRO Toàn Quyền.`);
+    }
+  };
+
+  return (
+    <>
+      {/* Top Announcement Bar */}
+      <div className="topbar">
+        <div className="topbar-info">
+          <span className="topbar-info-item"><i className="fa-solid fa-user-tie"></i> Tác giả: <strong>Huỳnh Ngân Giang</strong></span>
+          <span className="topbar-info-item"><i className="fa-solid fa-phone"></i> SĐT/Zalo: <strong>0355782168</strong></span>
+          <span className="topbar-info-item"><i className="fa-solid fa-envelope"></i> Email: <strong>lyngangiang83pt@gmail.com</strong></span>
+        </div>
+        <div className="topbar-controls">
+          <button className="theme-toggle-btn" onClick={onOpenSupabaseModal} title="Cài đặt kết nối cơ sở dữ liệu Supabase">
+            <i className="fa-solid fa-database" style={{ color: '#3ecf8e' }}></i> <span>Supabase: Sẵn sàng</span>
+          </button>
+          <button className="theme-toggle-btn" onClick={onToggleTheme} title="Chuyển chế độ Sáng/Tối">
+            <i className={isDarkMode ? 'fa-solid fa-moon' : 'fa-solid fa-sun'}></i>
+            <span>{isDarkMode ? 'Giao diện Tối' : 'Giao diện Sáng'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <header className="main-header">
+        <div className="header-container">
+          <div className="logo-brand" onClick={() => setActiveView('home')}>
+            <div className="logo-icon"><i className="fa-solid fa-graduation-cap"></i></div>
+            <div className="logo-text">
+              <span className="logo-title">HÀNH TRÌNH SỐ</span>
+              <span className="logo-sub">docbuoc.vn</span>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav>
+            <ul className="nav-menu">
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'home' ? 'active' : ''}`} onClick={() => setActiveView('home')}>
+                  <i className="fa-solid fa-house"></i> Trang chủ
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'news' ? 'active' : ''}`} onClick={() => setActiveView('news')}>
+                  <i className="fa-solid fa-newspaper"></i> Bảng tin
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'games' ? 'active' : ''}`} onClick={() => setActiveView('games')}>
+                  <i className="fa-solid fa-gamepad"></i> Game
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'materials' ? 'active' : ''}`} onClick={() => setActiveView('materials')}>
+                  <i className="fa-solid fa-book-bookmark"></i> Học liệu số
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'lectures' ? 'active' : ''}`} onClick={() => setActiveView('lectures')}>
+                  <i className="fa-solid fa-chalkboard-user"></i> Bài giảng
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'assignments' ? 'active' : ''}`} onClick={() => setActiveView('assignments')}>
+                  <i className="fa-solid fa-pen-to-square"></i> Bài tập
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'submissions' ? 'active' : ''}`} onClick={() => setActiveView('submissions')}>
+                  <i className="fa-solid fa-shapes"></i> Sản phẩm HS
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'qa' ? 'active' : ''}`} onClick={() => setActiveView('qa')}>
+                  <i className="fa-solid fa-comments"></i> Hỏi - đáp
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'vip' ? 'active' : ''}`} onClick={() => setActiveView('vip')}>
+                  <i className="fa-solid fa-crown"></i> Kho VIP <span className="nav-badge-vip">PRO</span>
+                </button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeView === 'announcements' ? 'active' : ''}`} onClick={() => setActiveView('announcements')}>
+                  <i className="fa-solid fa-bell"></i> Thông báo
+                </button>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Action & Auth Area */}
+          <div className="header-actions">
+            <div className="notification-bell" onClick={() => setActiveView('announcements')} title="Xem thông báo mới">
+              <i className="fa-solid fa-bell"></i>
+              <span className="bell-badge">3</span>
+            </div>
+
+            {user ? (
+              <div className="user-profile-badge" onClick={handleProfileClick} title="Bấm để xem hồ sơ / Quản trị">
+                <img src={user.avatar} alt="Avatar" className="user-avatar" />
+                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="user-name">{user.name}</span>
+                    {user.is_vip && (
+                      <span style={{ fontSize: '0.65rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: 700 }}>
+                        VIP PRO
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: getRoleBadge(user.role).color, fontWeight: 700 }}>
+                    {getRoleBadge(user.role).text}
+                  </span>
+                </div>
+                <i
+                  className="fa-solid fa-right-from-bracket"
+                  style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', marginLeft: '6px' }}
+                  onClick={(e) => { e.stopPropagation(); if (window.confirm('Bạn có muốn đăng xuất?')) logout(); }}
+                  title="Đăng xuất"
+                ></i>
+              </div>
+            ) : (
+              <button className="btn btn-primary" onClick={handleOpenLogin}>
+                <i className="fa-solid fa-right-to-bracket"></i> Đăng nhập / Đăng ký
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
